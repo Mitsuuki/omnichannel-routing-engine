@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Agency Router | Workspace</title>
+    <link rel="stylesheet" href="style.css?v=66.0">
+</head>
+<body>
+    <!-- SYSTEM PRELOADER -->
+    <div id="system-preloader" class="preloader">
+        <div class="preloader-content">
+            <div class="preloader-spinner"></div>
+            <div class="preloader-text">
+                <span style="color: var(--accent-color);">[SYSTEM]</span> Initializing Routing Core...
+            </div>
+            <div class="preloader-bar">
+                <div class="preloader-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INLINE PRELOADER LOGIC (Runs independently of script.js) -->
+    <script>
+        // window.onload naturally waits for your heavy script.js to finish executing
+        window.addEventListener('load', function() {
+            const preloader = document.getElementById('system-preloader');
+            
+            // Give the browser 300ms to "breathe" and paint the UI after the heavy JS load
+            setTimeout(() => {
+                if(preloader) {
+                    preloader.classList.add('fade-out');
+                    
+                    // Physically remove the preloader from the DOM after it fades out 
+                    // This frees up memory so your app runs faster!
+                    setTimeout(() => {
+                        preloader.remove();
+                    }, 600);
+                }
+            }, 300);
+        });
+    </script>
+
+    <!-- GLOBAL LAYERS FOR THEMES & COMPANIONS (Pointer-events: none so they NEVER block clicks) -->
+    <div id="theme-bg-layer" class="theme-bg-layer"></div>
+    <div id="vfx-layer" class="vfx-layer"></div>
+    <div id="pet-container" class="pet-container"></div>
+
+    <!-- LEFT EDGE PULSING TRIGGER -->
+    <div class="sidebar-trigger" id="openSidebarBtn" onclick="openSidebar()">
+        <div class="ping-dot" id="pingDot"></div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
+
+    <!-- Overlay for Sidebar & Modals -->
+    <div class="overlay" id="sidebarOverlay"></div>
+
+    <!-- FULL SCREEN IFRAME MODAL -->
+    <div class="modal" id="fullscreenModal">
+        <div class="modal-header">
+            <h2 id="modalTitle" style="color: var(--text-main); margin: 0; font-size: 1.2rem;">Database View</h2>
+            <button class="close-sidebar-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+    </div>
+
+    <!-- SLIDE-OUT CONFIGURATION SIDEBAR (18 VERIFIED PLATFORMS) -->
+    <div class="sidebar" id="configSidebar">
+        <div class="sidebar-header">
+            <h2>Configuration Stack</h2>
+            <button class="close-sidebar-btn" onclick="closeSidebar()">&times;</button>
+        </div>
+
+        <h3 class="category-header">CRM & Databases</h3>
+        <div class="toggle-grid">
+            <label class="toggle-item"><input type="checkbox" value="airtable" class="dest-toggle" data-type="visual" checked><span class="slider"></span><div class="toggle-label"><strong>Airtable</strong><span>Visual CRM</span></div></label>
+            <label class="toggle-item"><input type="checkbox" value="notion" class="dest-toggle" data-type="api"><span class="slider"></span><div class="toggle-label"><strong>Notion</strong><span>Wiki DB</span></div></label>
+            <label class="toggle-item"><input type="checkbox" value="sheets" class="dest-toggle" data-type="visual"><span class="slider"></span><div class="toggle-label"><strong>Sheets</strong><span>Data Log</span></div></label>
+        </div>
+
+        <h3 class="category-header">Task Management</h3>
+        <div class="toggle-grid">
+            <label class="toggle-item"><input type="checkbox" value="clickup" class="dest-toggle" data-type="visual" checked><span class="slider"></span><div class="toggle-label"><strong>ClickUp</strong><span>Task Create</span></div></label>
+            <label class="toggle-item"><input type="checkbox" value="asana" class="dest-toggle" data-type="api"><span class="slider"></span><div class="toggle-label"><strong>Asana</strong><span>Project Sync</span></div></label>
+            <label class="toggle-item"><input type="checkbox" value="monday" class="dest-toggle" data-type="visual"><span class="slider"></span><div class="toggle-label"><strong>Monday.com</strong><span>Board Sync</span></div></label>
+            <label class="toggle-item locked" data-available="false" title="Coming soon"><input type="checkbox" value="trello" disabled class="dest-toggle" data-type="api"><span class="slider"></span><div class="toggle-label"><strong>Trello</strong><span>Kanban Card</span></div></label>
+        </div>
+
+        <h3 class="category-header">E-Commerce & Marketing</h3>
+        <div class="toggle-grid">
+            <label class="toggle-item locked" data-available="false" title="Coming soon"><input type="checkbox" value="shopify" disabled class="dest-toggle" data-type="api"><span class="slider"></span><div class="toggle-label"><strong>Shopify</strong><span>Draft Order / Cart</span></div></label>
+            <label class="toggle-item"><input type="checkbox" value="klaviyo" class="dest-toggle" data-type="api"><span class="slider"></span><div class="toggle-label"><strong>Klaviyo</strong><span>Profile Track</span></div></label>
+        </div>
+
+        <h3 class="category-header">Finance & Scheduling</h3>
+        <div class="toggle-grid">
+            <label class="toggle-item locked" data-available="false" title="Coming soon"><input type="checkbox" value="stripe" disabled class="dest-toggle" data-type="api"><span class="slider"></span><div class="toggle-label"><strong>Stripe</strong><span>Payment Link</span></div></label>
+            <label class="toggle-item locked" data-available="false" title="Coming soon"><input type="checkbox" value="gcal" disabled class="dest-toggle" data-type="api"><span class="slider"></span><div class="toggle-label"><strong>Google Cal</strong><span>Meet Schedule</span></div></label>
+        </div>
+
+        <h3 class="category-header">Communications & Endpoints</h3>
+        <div class="toggle-list">
+            <div class="toggle-wrapper">
+                <label class="toggle-item locked" data-available="false" title="Coming soon"><input type="checkbox" disabled value="slack" class="dest-toggle config-trigger" data-target="config-slack"><span class="slider"></span><div class="toggle-label"><strong>Slack</strong><span>Team Alert</span></div></label>
+                <div class="webhook-input-container active" id="config-slack"><input type="text" id="webhook-slack" placeholder="Paste Slack Webhook URL (Optional)"></div>
+            </div>
+            <div class="toggle-wrapper">
+                <label class="toggle-item"><input type="checkbox" value="discord" class="dest-toggle" data-type="visual"><span class="slider"></span><div class="toggle-label"><strong>Discord</strong><span>Team Alert</span></div></label>
+            </div>
+            <div class="toggle-wrapper">
+                <label class="toggle-item"><input type="checkbox" value="telegram" class="dest-toggle" data-type="visual"><span class="slider"></span><div class="toggle-label"><strong>Telegram</strong><span>Team Alert</span></div></label>
+            </div>
+            <div class="toggle-wrapper">
+                <label class="toggle-item locked" data-available="false" title="Coming soon"><input type="checkbox" disabled value="whatsapp" class="dest-toggle config-trigger" data-target="config-whatsapp"><span class="slider"></span><div class="toggle-label"><strong>WhatsApp</strong><span>Direct Text</span></div></label>
+                <div class="webhook-input-container" id="config-whatsapp"><input type="text" id="webhook-whatsapp" placeholder="Enter Phone Number with Country Code"></div>
+            </div>
+            <div class="toggle-wrapper">
+                <label class="toggle-item"><input type="checkbox" value="gmail" class="dest-toggle config-trigger" data-target="config-gmail"><span class="slider"></span><div class="toggle-label"><strong>Gmail</strong><span>Auto-Email</span></div></label>
+                <div class="webhook-input-container" id="config-gmail">
+                    <div class="input-wrapper">
+                        <input type="email" id="gmail-target-email" placeholder="Enter email address...">
+                        <span id="email-indicator" class="validation-icon"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="toggle-wrapper">
+                <label class="toggle-item"><input type="checkbox" value="custom" class="dest-toggle config-trigger" data-target="config-custom"><span class="slider"></span><div class="toggle-label"><strong>Custom API</strong><span>JSON Webhook</span></div></label>
+                <div class="webhook-input-container" id="config-custom"><input type="text" id="webhook-custom" placeholder="Paste any destination URL"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD AREA -->
+    <div class="dashboard-wrapper fade-in">
+        
+        <div class="header" id="dash-header">
+            <div style="text-align: left;">
+                <h1 style="font-size: 1.8rem; margin:0;" id="dash-title">Omnichannel Routing Engine</h1>
+                <p style="margin:0;">Watch the AI extract and synchronize data across platforms in real-time.</p>
+            </div>
+
+            <div class="panel-controls" style="display: flex; gap: 12px; align-items: center;">
+                <button id="btn-vault-header" class="panel-link" onclick="openVault()" title="Open Theme Vault">🎒 Customize UI</button>
+                <button id="theme-toggle" class="panel-link" onclick="toggleLightMode()" title="Toggle Theme">☀️ Pastel Theme</button>
+                
+                <button id="btn-q1" class="panel-link active desktop-only" onclick="toggleQuadrant('q1')" title="Toggle Input Window">Input</button>
+                <button id="btn-q2" class="panel-link active desktop-only" onclick="toggleQuadrant('q2')" title="Toggle Database Window">Sync</button>
+                <button id="btn-q3" class="panel-link active desktop-only" onclick="toggleQuadrant('q3')" title="Toggle Pipeline Window">Flow</button>
+                <button id="btn-q4" class="panel-link active desktop-only" onclick="toggleQuadrant('q4')" title="Toggle Terminal Window">Terminal</button>
+            </div>
+        </div>
+
+        <div class="container delay-1" id="main-container">
+            
+            <!-- THE GACHA IDLE STATE -->
+            <div id="idle-state" class="idle-state-container">
+                <div class="idle-content" id="idle-content">
+                    <div id="event-banner" class="event-banner hidden">🌸 SPRING FESTIVAL ACTIVE 🌸</div>
+                    
+                    <div class="sleeping-bot" id="sleeping-bot" data-face="◡‸◡">
+                        <div id="bot-accessory" class="bot-accessory"></div>
+                        <div class="z-particles" id="z-particles">
+                            <span>z</span><span>Z</span><span>z</span>
+                        </div>
+                    </div>
+                    <h2>System Offline</h2>
+                    <p class="idle-subtext">
+                        The routing core is taking a power nap.<br>
+                        <span>Toggle a panel to wake it up.</span>
+                    </p>
+                    
+                    <div class="idle-buttons">
+                        <button id="btn-wake" class="vault-btn pulse-btn" onclick="forceWakeSystem()">🔌 Wake System</button>
+                        <button id="btn-vault" class="vault-btn hidden">🎒 Access Vault</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- The Gacha Inventory Modal -->
+            <div id="gacha-vault" class="gacha-vault hidden">
+                <div class="vault-header">
+                    <h3>System Vault <span id="vault-count" style="font-size:0.7rem; color:var(--accent-color);"></span></h3>
+                    <button id="close-vault" class="close-vault">&times;</button>
+                </div>
+                <div class="vault-body" id="vault-list">
+                    <!-- JS Injects Inventory Here -->
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 DASHBOARD LAYOUT (v63 — explicit ordering)
+                 TOP ROW    : Input (q1) + Live Database Sync (q2)
+                 BOTTOM ROW : Live Execution Pipeline (q3) + System Terminal (q4)
+                 ============================================================ -->
+            <!-- TOP ROW -->
+            <div class="flex-row" id="top-row" style="flex: 1 1 60%;">
+                
+                <!-- QUADRANT 1: Input Simulator -->
+                <div class="quadrant" id="q1" style="flex: 0 0 35%;">
+                    <div class="card" id="widget-input">
+                        <div class="input-tabs">
+                            <button class="in-tab active" onclick="switchInputTab('simulator')" id="tab-simulator">💻 Web Simulator</button>
+                            
+                        </div>
+                        <div id="view-simulator" class="input-view active">
+                            <div style="display:flex; gap: 8px; margin-bottom: 12px; margin-top: 10px;">
+                                <button type="button" class="preset-btn" onclick="loadTemplate('lead')">📄 Messy Lead</button>
+                                <button type="button" class="preset-btn" onclick="loadTemplate('complaint')">🚨 Angry Ticket</button>
+                            </div>
+                            <form id="router-form" class="email-composer">
+                                <div class="composer-field"><span class="field-label">From:</span> <input type="text" id="raw-sender" placeholder="lead@example.com" value="michael.scott@dunder.com"></div>
+                                <div class="composer-field"><span class="field-label">Subject:</span> <input type="text" id="raw-subject" placeholder="Inquiry..." value="Property Inquiry"></div>
+                                <textarea id="raw-data" placeholder="Paste unstructured text or email threads here..."></textarea>
+                                <div class="composer-footer"><button type="submit" id="process-btn">Execute Pipeline</button>
+                                </div>
+                            </form>
+                        </div>
+                </div>
+
+                <!-- DRAG TO RESIZE (Vertical Top) -->
+                <div class="resizer-v" id="resizer-v-top"></div>
+
+                <!-- QUADRANT 2: Sync View -->
+                <div class="quadrant" id="q2" style="flex: 1 1 0%;">
+                    <div class="card" id="widget-sync">
+                        <h2>Live Database Sync</h2>
+                        <div class="iframe-tabs">
+                            <button class="tab-btn active" onclick="switchTab('airtable')" id="tab-airtable">Airtable</button>
+                            <button class="tab-btn" onclick="switchTab('clickup')" id="tab-clickup">ClickUp</button>
+                            <button class="tab-btn" onclick="switchTab('monday')" id="tab-monday">Monday.com</button>
+                            <button class="tab-btn" onclick="switchTab('sheets')" id="tab-sheets">Sheets</button>
+                            <button class="tab-btn" onclick="switchTab('discord')" id="tab-discord">Discord</button>
+                            <button class="tab-btn" onclick="switchTab('telegram')" id="tab-telegram">Telegram</button>
+                        </div>
+                        <div class="iframe-container active" id="iframe-airtable">
+                            <div class="iframe-overlay-bar">
+                                <button class="fullscreen-btn action-btn" onclick="reloadIframe('airtable')">
+                                    <span class="btn-icon">🔄</span> <span class="btn-text">Reload</span>
+                                </button>
+                                <button class="fullscreen-btn action-btn" onclick="openFullscreen('airtable')">
+                                    <span class="btn-icon">⛶</span> <span class="btn-text">Full Screen</span>
+                                </button>
+                            </div>
+                            <!-- Desktop Grid View -->
+                            <iframe class="embed-desktop airtable-embed" src="https://airtable.com/embed/appQ8sdBJ7Jz8PGVV/shrEu9wfvyZoRMcUR?viewControls=on" frameborder="0" width="100%" height="100%" style="background: transparent;"></iframe>
+                            
+                            <!-- Mobile Card View -->
+                            <iframe class="embed-mobile airtable-embed" src="https://airtable.com/embed/appQ8sdBJ7Jz8PGVV/shrEu9wfvyZoRMcUR?viewControls=on&layout=card" frameborder="0" width="100%" height="100%" style="background: transparent;"></iframe>
+                        </div>
+                        <div class="iframe-container" id="iframe-clickup">
+                            <div class="iframe-overlay-bar">
+                                <button class="fullscreen-btn action-btn" onclick="reloadIframe('clickup')">
+                                    <span class="btn-icon">🔄</span> <span class="btn-text">Reload</span>
+                                </button>
+                                <button class="fullscreen-btn action-btn" onclick="openFullscreen('clickup')">
+                                    <span class="btn-icon">⛶</span> <span class="btn-text">Full Screen</span>
+                                </button>
+                            </div>
+                            <!-- Desktop List View -->
+                            <iframe class="embed-desktop" src="https://sharing.clickup.com/90161750592/l/h/6-901616486531-1/8afa9ed9b7b2f1c" frameborder="0" width="100%" height="100%"></iframe>
+                            <!-- Mobile Board View -->
+                            <iframe class="embed-mobile" src="https://sharing.clickup.com/90161750592/b/h/4-90167836568-2/07c73d7bc8dc321" frameborder="0" width="100%" height="100%"></iframe>
+                        </div>
+
+                        <div class="iframe-container" id="iframe-monday">
+                            <div class="iframe-overlay-bar">
+                                <button class="fullscreen-btn action-btn" onclick="reloadIframe('monday')">
+                                    <span class="btn-icon">🔄</span> <span class="btn-text">Reload</span>
+                                </button>
+                                <button class="fullscreen-btn action-btn" onclick="openFullscreen('monday')">
+                                    <span class="btn-icon">⛶</span> <span class="btn-text">Full Screen</span>
+                                </button>
+                            </div>
+                            <!-- Desktop Table View -->
+                            <iframe class="embed-desktop" src="https://view.monday.com/embed/5030794959-fbba6b233427a0853752ccae892d10c5?r=apse2" frameborder="0" width="100%" height="100%"></iframe>
+                            <!-- Mobile Kanban View -->
+                            <iframe class="embed-mobile" src="https://view.monday.com/embed/5030794959-cd9ed75e62152e3a1ef8d6be7d776357?r=apse2" frameborder="0" width="100%" height="100%"></iframe>
+                        </div>
+
+                        <div class="iframe-container" id="iframe-sheets">
+                            <div class="iframe-overlay-bar">
+                                <button class="fullscreen-btn action-btn" onclick="reloadIframe('sheets')">
+                                    <span class="btn-icon">🔄</span> <span class="btn-text">Reload</span>
+                                </button>
+                                <button class="fullscreen-btn action-btn" onclick="openFullscreen('sheets')">
+                                    <span class="btn-icon">⛶</span> <span class="btn-text">Full Screen</span>
+                                </button>
+                            </div>
+                            <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2No54tpOdLhI3xUyJf0few-si1qAvoKpib1KIuZM7AlQiJElqZCGtOXKL1PQQqC1vtlB3IyA4wdmW/pubhtml?gid=308727832&single=true&widget=false&headers=false&chrome=false" frameborder="0" width="100%" height="100%"></iframe>
+                        </div>
+
+                        <!-- Discord WidgetBot -->
+                        <div class="iframe-container" id="iframe-discord">
+                            <widgetbot server="1547939886584168539" channel="1547939888576593962" width="100%" height="100%"></widgetbot>
+                        </div>
+
+                        <!-- Telegram Secure Gateway -->
+                        <div class="iframe-container" id="iframe-telegram">
+                            <div class="telegram-gateway">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">✈️</div>
+                                <h3 style="color: var(--text-primary, #f8fafc); margin-bottom: 0.5rem; font-family: monospace;">TELEGRAM_SECURE_LINK</h3>
+                                <p style="max-width: 400px; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.5; color: var(--text-muted, #94a3b8);">
+                                    Due to native API security protocols (X-Frame-Options), live Telegram feeds cannot be rendered inside an iframe.<br><br>
+                                    Payloads are routed securely and permanently logged to the live developer channel.
+                                </p>
+                                <a href="https://t.me/s/agencybotping" target="_blank" class="welcome-btn primary" style="text-decoration: none; font-family: monospace; padding: 10px 15px; border-radius: 4px; display: inline-block; white-space: nowrap; font-size: 0.85rem;">[ LAUNCH LIVE LOGS ↗ ]</a>
+                            </div>
+                        </div>
+
+                        <div id="external-proofs-container" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); display: none; gap: 10px; flex-wrap: wrap;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); line-height: 24px;">External Proofs:</span>
+                            <a href="https://app.notion.com/p/3c6e2ecf97cb804b84d8db0db7218b6c?v=3c6e2ecf97cb80d5b36a000c9204d302&source=copy_link" target="_blank" class="preset-btn proof-link" id="proof-notion" data-platform="notion" style="display: none; text-decoration: none;">📓 View Notion DB ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN HORIZONTAL RESIZER -->
+            <div class="resizer-main-h" id="resizer-h-main"><div class="resizer-h-line"></div></div>
+
+            <!-- BOTTOM ROW -->
+            <div class="flex-row" id="bottom-row" style="flex: 1 1 40%; min-height: 0;">
+
+                <!-- QUADRANT 3: Pipeline (Live Execution Pipeline) -->
+                <div class="quadrant" id="q3" style="flex: 0 0 70%;">
+                    <div class="card p-0" id="widget-pipeline">
+                        <div class="console-header" style="justify-content: space-between;">
+                            <div style="display:flex; align-items:center; gap: 10px;">
+                                <div style="display:flex; gap: 6px;">
+                                    <div class="terminal-dot dot-red"></div>
+                                    <div class="terminal-dot dot-yellow"></div>
+                                    <div class="terminal-dot dot-green"></div>
+                                </div>
+                                <span class="console-title">Live Execution Pipeline</span>
+                            </div>
+                            
+                            <!-- CENTERED PIPELINE STYLE CONTROLS -->
+                            <div class="view-controls" style="display:flex; gap: 4px;">
+                                <button id="btn-view-horizontal" class="view-btn active" onclick="switchPipelineView('horizontal')" title="Horizontal Track">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="12" x2="22" y2="12"></line><circle cx="6" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="18" cy="12" r="2"></circle></svg>
+                                </button>
+                                <button id="btn-view-vertical" class="view-btn" onclick="switchPipelineView('vertical')" title="Vertical Timeline">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"></line><circle cx="12" cy="6" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="18" r="2"></circle></svg>
+                                </button>
+                                <button id="btn-view-hub" class="view-btn" onclick="switchPipelineView('hub')" title="Router Hub">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="10" y2="12"></line><circle cx="2" cy="12" r="2"></circle><rect x="12" y="6" width="10" height="12" rx="2"></rect></svg>
+                                </button>
+                                <button class="view-btn" onclick="resetPipeline()" title="Reset Pipeline States" style="margin-left: 10px;">Reset</button>
+                            </div>
+                        </div>
+                        
+                        <!-- SCROLL VIEWPORT -->
+                        <div class="pipeline-scroll-area" id="pipeline-scroll-area">
+                            <div id="dynamic-pipeline" class="dynamic-pipeline-container view-horizontal">
+                                <!-- JS Injects Pipeline Here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DRAG TO RESIZE (Vertical Bottom) -->
+                <div class="resizer-v" id="resizer-v-bottom"></div>
+
+                <!-- QUADRANT 4: Terminal -->
+                <div class="quadrant" id="q4" style="flex: 1 1 0%;">
+                    <div class="card p-0" id="widget-terminal">
+                        <div class="console-header" style="justify-content: space-between;">
+                            <div style="display:flex; align-items:center; gap: 10px;">
+                                <div style="display:flex; gap: 6px;">
+                                    <div class="terminal-dot dot-red" style="background:#64748b"></div>
+                                    <div class="terminal-dot dot-yellow" style="background:#64748b"></div>
+                                    <div class="terminal-dot dot-green" style="background:#64748b"></div>
+                                </div>
+                                <span class="console-title">System Terminal</span>
+                            </div>
+                            <button class="close-terminal-btn mobile-only" onclick="toggleTerminal()">&times;</button>
+                        </div>
+                        <div class="terminal" id="terminal">
+                            <div id="console-output">
+                                <div class="log-entry"><span class="log-time">[SYSTEM]</span> Pipeline ready. Configure stack and inject payload.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MOBILE TERMINAL TOGGLE -->
+    <button class="terminal-toggle mobile-only" id="terminalToggleBtn" onclick="toggleTerminal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+    </button>
+
+    <!-- TECHNICAL CO-PILOT CHAT WIDGET -->
+    <button class="chat-toggle" id="chatToggleBtn" onclick="toggleChat()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    </button>
+    <div id="chatOverlay" class="chat-overlay" onclick="toggleChat()"></div>
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <div class="dot"></div>
+                <span>Technical Co-Pilot</span>
+                <span class="chat-mode-badge" id="chat-mode-badge">AI Mode</span>
+            </div>
+            <div>
+                <button class="chat-reset-btn" onclick="resetChat()" title="Reset conversation">↻</button>
+                <button class="close-chat-btn" onclick="toggleChat()">&times;</button>
+            </div>
+        </div>
+        <div class="chat-box" id="chat-box">
+            <div class="msg bot" id="chat-intro-msg">
+                Hi! I'm the AI Co-Pilot. Most questions are answered instantly by the presets below. If you need human help, click the button at the bottom.
+            </div>
+            <div class="quick-prompts-bar">
+            <!-- Moved the human help button here -->
+            <button class="prompt-chip urgent-chip" onclick="triggerHumanEscalation()">🙋 Need human help?</button>
+            
+            <button class="prompt-chip" onclick="sendFaq('What\'s the tech stack?')">What's the tech stack?</button>
+            <button class="prompt-chip" onclick="sendFaq('How do I add a destination?')">How do I add a destination?</button>
+            <button class="prompt-chip" onclick="sendFaq('Can I customize the UI?')">Can I customize the UI?</button>
+            <button class="prompt-chip" onclick="sendFaq('How do I receive real emails?')">How do I receive real emails?</button>
+            <button class="prompt-chip" onclick="sendFaq('Is my data secure?')">Is my data secure?</button>
+        </div>
+
+        <div class="chat-input-area hidden" id="chat-input-area">
+            <textarea id="user-input" rows="2" placeholder="Describe your issue briefly..."></textarea>
+            <button class="send-btn" id="send-btn" onclick="submitEscalation()">Send</button>
+        </div>
+    </div>
+
+    
+    <!-- WELCOME / ONBOARDING MODAL -->
+    <div id="welcome-modal" class="welcome-modal" style="display:none;">
+        <div class="welcome-spotlight" id="welcome-spotlight"></div>
+        <svg class="welcome-arrow" id="welcome-arrow" width="60" height="60" viewBox="0 0 60 60">
+            <path d="M5 30 Q 30 5, 55 30" stroke="var(--accent-color)" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <polygon points="50,25 60,30 50,35" fill="var(--accent-color)"/>
+        </svg>
+        <div class="welcome-panel" id="welcome-panel">
+            <div class="welcome-content" id="welcome-screen-intro">
+                <h2 class="welcome-title">Welcome to Intelligent Agency Router</h2>
+                <p class="welcome-text">
+                    An AI-powered omnichannel routing engine that extracts data from messy messages and syncs it across 11+ platforms in seconds.
+                </p>
+                <p class="welcome-text" style="font-size: 0.85rem; color: var(--text-muted);">
+                    Built with vanilla JavaScript, n8n, and Gemini AI.
+                </p>
+                <div class="welcome-actions">
+                    <button class="welcome-btn primary" onclick="showShowcaseScreen()">Show me what it does</button>
+                    <button class="welcome-btn ghost" style="font-size: 0.75rem; opacity: 0.7;" onclick="closeWelcome()">Skip Everything</button>
+                </div>
+            </div>
+            <div class="welcome-content" id="welcome-screen-showcase" style="display:none;">
+                <h2 class="welcome-title">What This Portfolio Does</h2>
+                <div class="showcase-grid">
+                    <div class="showcase-card">
+                        <div class="showcase-icon">🧠</div>
+                        <h3 class="showcase-card-title">AI Extraction</h3>
+                        <p class="showcase-card-text">Paste messy emails. Gemini AI extracts lead name, company, budget, urgency, and sentiment into clean JSON.</p>
+                    </div>
+                    <div class="showcase-card">
+                        <div class="showcase-icon">🔀</div>
+                        <h3 class="showcase-card-title">Smart Routing</h3>
+                        <p class="showcase-card-text">One click fans the data out to 11+ platforms in parallel: Airtable, HubSpot, ClickUp, Gmail, Discord, and more.</p>
+                    </div>
+                </div>
+                <div class="welcome-actions">
+                    <button class="welcome-btn ghost" onclick="showIntroScreen()">Back</button>
+                    <button class="welcome-btn primary" onclick="startOnboardingTour()">Take the Tour</button>
+                </div>
+            </div>
+            <div class="welcome-content" id="welcome-screen-tour" style="display:none;">
+                <div class="tour-progress" id="tour-progress-dots"></div>
+                <h2 class="welcome-title" id="tour-title">Step 1: Input</h2>
+                <p class="welcome-text" id="tour-text">Paste a messy email or use the 'Messy Lead' preset to load sample data.</p>
+                <div class="welcome-actions">
+                    <button class="welcome-btn ghost" onclick="closeWelcome()">Skip</button>
+                    <button class="welcome-btn ghost" id="tour-prev-btn" onclick="prevTourStep()" style="display:none;">Back</button>
+                    <button class="welcome-btn primary" id="tour-next-btn" onclick="nextTourStep()">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         LAYOUT v65 — UN-NESTING CORRECTION
+         Earlier the live HTML got into a state where q2 was nested
+         inside q1 and bottom-row was nested inside top-row. This
+         script reverses that damage on every page load:
+           1. Detects where each piece currently lives.
+           2. Walks up the parent chain until it finds the canonical
+              parent (main-container, top-row, bottom-row).
+           3. Re-inserts each node at the correct position.
+         Result (after this runs):
+           #main-container > #top-row > [q1, resizer-v-top, q2]
+           #main-container > #resizer-h-main
+           #main-container > #bottom-row > [q3, resizer-v-bottom, q4]
+         ============================================================ -->
+    <script>
+    (function unNestLayout() {
+        const findById = (id) => document.getElementById(id);
+        const main = findById('main-container');
+        const topRow = findById('top-row');
+        const bottomRow = findById('bottom-row');
+        const q1 = findById('q1');
+        const q2 = findById('q2');
+        const q3 = findById('q3');
+        const q4 = findById('q4');
+        const rH = findById('resizer-h-main');
+        const rTop = findById('resizer-v-top');
+        const rBot = findById('resizer-v-bottom');
+        if (!main || !topRow || !bottomRow || !q1 || !q2 || !q3 || !q4) return;
+
+        // Step 1: move bottom-row out of wherever it is, into main-container.
+        // It should become main's LAST child (so the resizer can sit between top-row and bottom-row).
+        main.appendChild(bottomRow);
+
+        // Step 2: move resizer-h-main into main-container, just BEFORE bottom-row.
+        if (rH) main.insertBefore(rH, bottomRow);
+
+        // Step 3: move q2 out of q1 (or wherever) and into top-row, as a sibling of q1.
+        topRow.appendChild(q2);
+
+        // Step 4: re-place the vertical resizers in their correct slots.
+        if (rTop) topRow.insertBefore(rTop, q2);
+        if (rBot) bottomRow.insertBefore(rBot, q4);
+
+        // Sanity log so the user can confirm in DevTools console.
+        const after = {
+            mainChildren: Array.from(main.children).map(c => c.id || c.className),
+            topRowChildren: Array.from(topRow.children).map(c => c.id || c.className),
+            bottomRowChildren: Array.from(bottomRow.children).map(c => c.id || c.className)
+        };
+        console.log('=== LAYOUT v65 UN-NESTED ===');
+        console.log(JSON.stringify(after, null, 2));
+        console.log('=== END ===');
+    })();
+    </script>
+
+    <script src="script.js?v=60.0"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@widgetbot/html-embed"></script>
+
+</body>
+</html>
