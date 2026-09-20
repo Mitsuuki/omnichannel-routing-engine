@@ -16,53 +16,56 @@ const openSidebarBtn = document.getElementById('openSidebarBtn');
 const closeSidebarBtn = document.getElementById('closeSidebarBtn');
 const configSidebar = document.getElementById('configSidebar');
 const sidebarOverlay = document.getElementById('sidebarOverlay');
-const pingDot = document.g
+const pingDot = document.getElementById('pingDot');
 const modalTitle = document.getElementById('modalTitle');
 const configTriggers = document.querySelectorAll('.config-trigger');
 const fileUpload = document.getElementById('file-upload');
 const fileNameDisplay = document.getElementById('file-name');
 
 // ACTIVE CLOUDFLARE WEBHOOK URL
-const N8N_WEBHOOK_URL = 'https://earlier-link-killing-exception.trycloudflare.com/webhook/agency-router';
+const N8N_WEBHOOK_URL = 'https://api.auxavia.me/webhook/agency-router';
 
-// Platform Metadata Mapping
-const platformDetails = {
-    airtable: { icon: '📊', name: 'Airtable' },
-    clickup: { icon: '🎯', name: 'ClickUp' },
-    gohighlevel: { icon: '🚀', name: 'GHL' },
-    slack: { icon: '💬', name: 'Slack' },
-    hubspot: { icon: '🟧', name: 'HubSpot' },
-    asana: { icon: '📝', name: 'Asana' },
-    gmail: { icon: '📧', name: 'Gmail' },
-    notion: { icon: '📓', name: 'Notion' },
-    sheets: { icon: '📗', name: 'Sheets' },
-    discord: { icon: '👾', name: 'Discord' },
-    telegram: { icon: '✈️', name: 'Telegram' },
-    monday: { icon: '📆', name: 'Monday.com' },
-    trello: { icon: '📋', name: 'Trello' },
-    shopify: { icon: '🛍️', name: 'Shopify' },
-    klaviyo: { icon: '✉️', name: 'Klaviyo' },
-    activecampaign: { icon: '⚡', name: 'ActiveCamp' },
-    stripe: { icon: '💳', name: 'Stripe' },
-    gcal: { icon: '📅', name: 'Google Cal' },
-    whatsapp: { icon: '🟢', name: 'WhatsApp' },
-    custom: { icon: '🔗', name: 'Custom API' }
+// =========================================================================
+// PLATFORM REGISTRY — Single source of truth for all destination metadata.
+// Status: 'live' = enabled in n8n workflow, 'disabled' = present but off,
+//         'hidden' = no UI or workflow presence (metadata-only)
+// The UI sidebar, pipeline, and all platform counts derive from this.
+// =========================================================================
+const PLATFORM_REGISTRY = {
+    airtable:       { icon: '📊', name: 'Airtable',      status: 'live' },
+    notion:         { icon: '📓', name: 'Notion',         status: 'live' },
+    clickup:        { icon: '🎯', name: 'ClickUp',        status: 'live' },
+    asana:          { icon: '📝', name: 'Asana',           status: 'live' },
+    monday:         { icon: '📆', name: 'Monday.com',      status: 'live' },
+    klaviyo:        { icon: '✉️', name: 'Klaviyo',         status: 'live' },
+    telegram:       { icon: '✈️', name: 'Telegram',        status: 'live' },
+    discord:        { icon: '👾', name: 'Discord',         status: 'live' },
+    gmail:          { icon: '📧', name: 'Gmail',           status: 'live' },
+    custom:         { icon: '🔗', name: 'Custom API',      status: 'live' },
+    hubspot:        { icon: '🟧', name: 'HubSpot',         status: 'disabled' },
+    sheets:         { icon: '📗', name: 'Sheets',          status: 'live' },
+    slack:          { icon: '💬', name: 'Slack',            status: 'disabled' },
+    trello:         { icon: '📋', name: 'Trello',          status: 'disabled' },
+    shopify:        { icon: '🛍️', name: 'Shopify',        status: 'disabled' },
+    stripe:         { icon: '💳', name: 'Stripe',          status: 'disabled' },
+    gcal:           { icon: '📅', name: 'Google Cal',       status: 'disabled' },
+    whatsapp:       { icon: '🟢', name: 'WhatsApp',        status: 'disabled' },
+    gohighlevel:    { icon: '🚀', name: 'GHL',             status: 'hidden' },
+    activecampaign: { icon: '&#9889;', name: 'ActiveCamp',      status: 'hidden' }
 };
 
-// =========================================================================
-// SYNC CONTRACT: Must match the destinations actually ENABLED in workflow.json
-// 11 enabled, 7 disabled. The UI shows all 18 for transparency, but only the 11
-// enabled ones will actually route data through the live n8n workflow.
-// =========================================================================
-const LIVE_PLATFORMS = new Set([
-    'airtable', 'notion', 'clickup', 'asana',
-    'monday', 'klaviyo', 'telegram', 'discord', 'gmail', 'custom'
-]);
+// Derived sets (auto-computed from registry — never manually out of sync)
+const LIVE_PLATFORMS = new Set(
+    Object.entries(PLATFORM_REGISTRY).filter(([_, p]) => p.status === 'live').map(([k]) => k)
+);
+const DISABLED_PLATFORMS = new Set(
+    Object.entries(PLATFORM_REGISTRY).filter(([_, p]) => p.status === 'disabled').map(([k]) => k)
+);
 
-// Platforms present in n8n but currently disabled (do NOT call these from the UI)
-const DISABLED_PLATFORMS = new Set([
-    'sheets', 'trello', 'shopify', 'gcal', 'whatsapp', 'stripe', 'slack'
-]);
+// Backward-compatible lookup (same shape as old platformDetails)
+const platformDetails = Object.fromEntries(
+    Object.entries(PLATFORM_REGISTRY).map(([k, v]) => [k, { icon: v.icon, name: v.name }])
+);
 
 // =========================================================================
 // ISOLATED GACHA & VFX ENGINE
@@ -235,14 +238,18 @@ const GachaSystem = {
         if (layer) layer.innerHTML = '';
         document.body.className = ''; 
         
-        if(!this.equipped.theme && localStorage.getItem('omni_light_mode') === 'true') {
-            document.body.classList.add('light-mode');
-        }
+        try {
+            if(!this.equipped.theme && localStorage.getItem('omni_light_mode') === 'true') {
+                document.body.classList.add('light-mode');
+            }
+        } catch(e) {}
     },
     runVFXEngine: function(themeId) {
         this.clearVFX();
         const layer = document.getElementById('vfx-layer');
         if (!layer) return;
+        // Respect accessibility: skip particles if user prefers reduced motion
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
         if (themeId === 'leg_sakura') {
             document.body.classList.add('theme-sakura');
@@ -1000,7 +1007,7 @@ function renderPipeline() {
 
     if (currentPipelineView === 'horizontal' || currentPipelineView === 'vertical') {
         const allNodes = baseNodes.concat(selectedDests.map(dest => {
-            const item = platformDetails[dest] || { icon: '⚡', name: dest };
+            const item = platformDetails[dest] || { icon: '&#9889;', name: dest };
             return { id: dest, icon: item.icon, name: item.name };
         }));
 
@@ -1035,7 +1042,7 @@ function renderPipeline() {
             html += `<div class="node-connector" id="conn-hub"><div class="conn-fill"></div></div>`;
             html += `<div class="hub-grid">`;
             selectedDests.forEach((dest) => {
-                const item = platformDetails[dest] || { icon: '⚡', name: dest };
+                const item = platformDetails[dest] || { icon: '&#9889;', name: dest };
                 html += `
                     <div class="node-item" id="pipe-${dest}">
                         <div class="node-dot"></div>
@@ -1055,12 +1062,21 @@ function renderPipeline() {
 }
 
 function centerActiveNode(nodeId) {
-    if (currentPipelineView === 'hub') return; 
+    if (currentPipelineView === 'hub') return;
 
     const el = document.getElementById(nodeId);
     const scrollArea = document.getElementById('pipeline-scroll-area');
     if (el && scrollArea) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        if (currentPipelineView === 'vertical') {
+            // For vertical timeline, scroll to top of area on start, or block nearest for steps
+            if (nodeId === 'pipe-ingest') {
+                scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+            }
+        } else {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
     }
 }
 
@@ -1096,6 +1112,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 if (form) {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const pipelineStartTime = Date.now();
         
         const rawDataInput = document.getElementById('raw-data');
         const rawData = rawDataInput ? rawDataInput.value.trim() : "";
@@ -1144,29 +1161,38 @@ if (form) {
             if (nodeIngest) nodeIngest.classList.add('processing');
             logToTerminal(`POST → ${N8N_WEBHOOK_URL}`, 'send');
             logToTerminal(`From: ${webhookData.sender} | Subject: ${webhookData.subject}`, 'send');
-            logToTerminal(`Destinations: ${selectedDests.join(', ')}`, 'send');
 
-            const requestStartTime = Date.now();
-            const response = await fetch(N8N_WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    input_data: rawData,
-                    metadata: webhookData,
-                    destinations: selectedDests,
-                    timestamp: new Date().toISOString()
-                })
-            });
-            const requestDuration = Date.now() - requestStartTime;
-            logToTerminal(`Response: HTTP ${response.status} ${response.statusText} | ${requestDuration}ms`, response.ok ? 'success' : 'error');
             let responseData;
+            
             try {
+                // Set a 60-second timeout so the UI doesn't hang forever
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
+                
+                const response = await fetch(N8N_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        input_data: rawData, metadata: webhookData, destinations: selectedDests, timestamp: new Date().toISOString()
+                    }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const rawText = await response.text();
-                logToTerminal(`Payload size: ${rawText.length} bytes | type: ${response.headers.get('content-type') || 'unknown'}`, 'info');
                 responseData = rawText ? JSON.parse(rawText) : {};
-            } catch (parseErr) {
-                logToTerminal(`JSON parse failed: ${parseErr.message}`, 'error');
-                responseData = {};
+                
+            } catch (networkError) {
+                // If the tunnel expires or backend fails, run Demo Mode!
+                logToTerminal(`[SYSTEM] Live webhook unreachable (${networkError.message}).`, 'error');
+                logToTerminal(`[SYSTEM] Initiating Local Demo Mode...`, 'warn');
+                
+                responseData = {
+                    status: "demo_success",
+                    ai_extracted_data: { lead_name: "Local Demo User", company: "Demo Corp", budget: "$10k", urgency: "High", sentiment: "Neutral" },
+                    destinations: selectedDests.map(d => ({ platform: d, name: d, ok: true, recordId: "demo_" + Math.random().toString(36).substr(2, 6) }))
+                };
             }
             
             await delay(500);
@@ -1190,6 +1216,7 @@ if (form) {
                 const nodeEl = document.getElementById(`pipe-${step.id}`);
                 if (nodeEl) nodeEl.classList.add('processing');
 
+                let nodeState = 'success';
                 if (step.type === 'base') {
                     if (step.id === 'ingest') {
                         logToTerminal(`Payload received: ${rawData.length} chars from ${webhookData.sender}`, 'success');
@@ -1225,28 +1252,69 @@ if (form) {
                                 receiptId = ` (ID: ${cleanId})`;
                             }
                             logToTerminal(`${step.name} → ✅ sync confirmed${receiptId}`, 'success');
+                            nodeState = 'success';
                         } else if (destResult.status === 'skipped') {
                             logToTerminal(`${step.name} → ⏭ skipped (${destResult.error || 'not configured'})`, 'warn');
+                            nodeState = 'skipped';
                         } else {
                             logToTerminal(`${step.name} → ❌ failed: ${destResult.error || 'unknown error'}`, 'error');
+                            nodeState = 'failed';
                         }
                     } else {
                         logToTerminal(`${step.name} → ⚠ no report from backend (may not be enabled in n8n)`, 'warn');
+                        nodeState = 'skipped';
                     }
                     await delay(400);
                 }
 
-                if (nodeEl) nodeEl.classList.replace('processing', 'success');
+                // Set node visual state based on actual result
+                if (nodeEl) {
+                    if (step.type === 'base') {
+                        nodeEl.classList.replace('processing', 'success');
+                    } else {
+                        nodeEl.classList.replace('processing', nodeState);
+                    }
+                }
             }
 
-            // Show the final summary based on actual backend response
-            if (responseData && responseData.status) {
-                const statusType = responseData.status === 'success' ? 'success' :
-                                  responseData.status === 'partial' ? 'warn' : 'error';
-                logToTerminal(`Pipeline complete: ${responseData.status.toUpperCase()}`, statusType);
-            } else {
-                logToTerminal('Pipeline complete (no status field in response)', 'info');
+            // ── Execution Receipt ──────────────────────────────────
+            const pipelineDuration = ((Date.now() - pipelineStartTime) / 1000).toFixed(1);
+            const isDemo = responseData && responseData.status === 'demo_success';
+            const dests = (responseData && Array.isArray(responseData.destinations)) ? responseData.destinations : [];
+            const successCount = dests.filter(d => d.ok).length;
+            const failCount = dests.filter(d => !d.ok && d.status !== 'skipped').length;
+            const skipCount = dests.filter(d => d.status === 'skipped').length;
+
+            const overallStatus = failCount > 0 ? (successCount > 0 ? 'PARTIAL' : 'FAILED') : 'SUCCESS';
+            const statusType = overallStatus === 'SUCCESS' ? 'success' : overallStatus === 'PARTIAL' ? 'warn' : 'error';
+
+            logToTerminal('══════════════════════════════════════════', 'info');
+            if (isDemo) {
+                logToTerminal('Live backend unavailable. Showing local demo result.', 'warn');
             }
+            logToTerminal(`${isDemo ? '[DEMO MODE] ' : ''}PIPELINE RESULT | ${pipelineDuration}s | ${overallStatus}`, statusType);
+            logToTerminal(`[Req ID]  ${Math.random().toString(36).substring(2, 10).toUpperCase()}`, 'info');
+            const startTimeStr = new Date(pipelineStartTime).toLocaleTimeString();
+            const endTimeStr = new Date().toLocaleTimeString();
+            logToTerminal(`[Time]    ${startTimeStr} - ${endTimeStr}`, 'info');
+            
+            const aiData = responseData.ai_extracted_data || {};
+            logToTerminal(`[AI JSON] ${JSON.stringify(aiData)}`, 'info');
+            logToTerminal('--- DESTINATION STATUS ---', 'info');
+            
+            dests.forEach(d => {
+                const name = platformDetails[d.name || d.platform]?.name || d.name || d.platform;
+                if (d.ok) {
+                    const rid = d.recordId ? ` (${String(d.recordId).substring(0, 16)})` : '';
+                    logToTerminal(`  ✅ ${name} → synced${rid}`, 'success');
+                } else if (d.status === 'skipped') {
+                    logToTerminal(`  ⏭ ${name} → skipped`, 'warn');
+                } else {
+                    logToTerminal(`  ❌ ${name} → ${d.error || 'failed'}`, 'error');
+                }
+            });
+            logToTerminal('─────────────────────────────────────', 'info');
+
             await delay(500);
             if (processBtn) { processBtn.disabled = false; processBtn.textContent = 'Execute Routing Pipeline'; }
             if (termToggleBtn) termToggleBtn.classList.remove('processing');
@@ -1273,11 +1341,59 @@ if (form) {
     });
 }
 
-window.loadTemplate = function(type) {
-    const textarea = document.getElementById('raw-data');
-    if (!textarea) return;
-    if(type === 'lead') textarea.value = "Hi, I'm looking for a luxury home in Beverly Hills. My name is Michael Scott from Dunder Mifflin, budget is like 2 million? I want to see the pine street property ASAP. Can we do this Friday?";
-    if(type === 'complaint') textarea.value = "THIS IS UNACCEPTABLE. I have been waiting for my viewing confirmation for 3 days now. My name is Toby Flenderson. This property management service is a disaster. FIX IT NOW.";
+window.generateRandomPayload = function() {
+    const dataVault = {
+        firstNames: ['Michael', 'Sarah', 'James', 'Elena', 'David', 'Chloe', 'Marcus', 'Priya', 'Alex', 'Jordan'],
+        lastNames: ['Scott', 'Connor', 'Bond', 'Fisher', 'Chen', 'Miller', 'Wright', 'Patel', 'Rodriguez', 'Kim'],
+        companies: ['Dunder Mifflin', 'CyberDyne', 'Stark Industries', 'Acme Corp', 'GlobalTech', 'Apex Solutions', 'Nexus Dynamics', 'Zephyr Co'],
+        budgets: ['$5,000', '$12,500', '$50k', 'around 100k', 'a tight budget of $2k', 'unlimited budget', '$25,000/mo', '10 grand'],
+        urgencyPhrases: ['by next Friday', 'within 2 weeks', 'by the end of the month', 'in about 10 days', 'before the quarter ends', 'sometime next week'],
+        templates: [
+            { subject: "Enterprise Pricing Inquiry - {company}", body: "Hi team,\n\nI was browsing your site and we need an enterprise license for {company}. My name is {name} and I'm leading the procurement.\n\nWe have {budget} allocated for this quarter. Can we jump on a call {urgency}? \n\nThanks!" },
+            { subject: "URGENT: System Down for {company}!!!", body: "THIS IS UNACCEPTABLE! \n\nOur entire production environment at {company} has been down for two hours. I am {name}, the CTO. We are losing money every minute.\n\nI need an engineer on this {urgency}. We pay {budget} a year for this service, I expect better!" },
+            { subject: "Partnership Opportunity with {company}", body: "Hey there! {name} here from {company}.\n\nLove what you guys are building. We're looking to integrate your API and have a warchest of {budget} to get this done. \n\nLet's connect {urgency} to discuss synergies.\n\nCheers." },
+            { subject: "Quick question regarding {company} account", body: "Hello,\n\nJust a quick note from {name} over at {company}. We are looking to upgrade our current tier. We have about {budget} to spend.\n\nPlease get back to me {urgency} with some options.\n\nBest,\n{name}" },
+            { subject: "Angry customer: {name}", body: "To whom it may concern,\n\nI have emailed you three times already. I am {name} from {company}. If this isn't resolved {urgency}, I am taking my {budget} elsewhere. \n\nFix my billing issue now." }
+        ]
+    };
+
+    const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const fn = getRandom(dataVault.firstNames);
+    const ln = getRandom(dataVault.lastNames);
+    const fullName = `${fn} ${ln}`;
+    const company = getRandom(dataVault.companies);
+    const budget = getRandom(dataVault.budgets);
+    const urgency = getRandom(dataVault.urgencyPhrases);
+    const domain = company.toLowerCase().replace(/\s+/g, '') + '.com';
+    const email = `${fn.toLowerCase()}.${ln.toLowerCase()}@${domain}`;
+
+    const template = getRandom(dataVault.templates);
+    const processText = (text) => text.replace(/{name}/g, fullName).replace(/{company}/g, company).replace(/{budget}/g, budget).replace(/{urgency}/g, urgency);
+
+    const senderEl = document.getElementById('raw-sender');
+    const subjectEl = document.getElementById('raw-subject');
+    const dataEl = document.getElementById('raw-data');
+
+    if (senderEl) senderEl.value = email;
+    if (subjectEl) subjectEl.value = processText(template.subject);
+    
+    if (dataEl) {
+        const finalBody = processText(template.body);
+        dataEl.value = "";
+        let i = 0;
+        
+        const btn = document.querySelector('button[onclick="generateRandomPayload()"]');
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+
+        const typeWriter = setInterval(() => {
+            dataEl.value += finalBody.charAt(i);
+            i++;
+            if (i >= finalBody.length) {
+                clearInterval(typeWriter);
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+            }
+        }, 5);
+    }
 };
 
 // --- CO-PILOT AI WIDGET ---
@@ -1309,620 +1425,261 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
-
 // =========================================================================
-// WELCOME / ONBOARDING TOUR (Element-targeted)
+// SIMPLIFIED ONBOARDING TOUR
 // =========================================================================
-
-const TOUR_STEPS = [
-    { title: 'Step 1: Input Panel', text: 'Paste a messy email here, or use the \'Messy Lead\' preset to load sample data. Then click \'Execute Pipeline\' to start the AI extraction.', targetSelector: '#widget-input', tooltipPosition: 'right' },
-    { title: 'Step 2: Database Sync', text: 'Watch leads appear in real-time in Airtable and ClickUp. Toggle destinations in the left sidebar to control which platforms get updated.', targetSelector: '#widget-sync', tooltipPosition: 'left' },
-    { title: 'Step 3: Live Pipeline', text: 'This is the visual representation of the AI extraction and routing process. Watch nodes light up as data flows through Ingest \u2192 Extract \u2192 Router \u2192 destinations.', targetSelector: '#widget-pipeline', tooltipPosition: 'top' },
-    { title: 'Step 4: System Terminal', text: 'Every step is logged here. Click \'Raw\' to see the exact JSON payload returned by the backend n8n workflow.', targetSelector: '#widget-terminal', tooltipPosition: 'left' },
-    { title: 'Step 5: Theme Toggle', text: 'Click here to switch between Dark mode and the Pastel Light theme. Perfect for showing off the UI in different lighting conditions.', targetSelector: '#theme-toggle', tooltipPosition: 'bottom' },
-    { title: 'Step 6: Configuration Sidebar', text: 'Click this pulsing left-edge button to open the configuration stack. Choose which 11 platforms to route to \u2014 the pipeline updates live.', targetSelector: '#openSidebarBtn', tooltipPosition: 'right' },
-    { title: 'Step 7: Technical Co-Pilot', text: 'Need help understanding the architecture? Click the chat bubble to ask the Co-Pilot about the tech stack, extraction process, or n8n workflow.', targetSelector: '#chatToggleBtn', tooltipPosition: 'left' }
-];
-
-let currentTourStep = 0;
-
 function showWelcomeIfFirstVisit() {
-    try {
-        const seen = localStorage.getItem('iar_welcome_seen');
-        if (seen) return;
-    } catch(e) { return; }
-
-    const waitForPreloaderAndShow = function() {
-        const preloader = document.getElementById('system-preloader');
-        if (!preloader) {
-            setTimeout(showWelcome, 500);
-        } else {
-            setTimeout(waitForPreloaderAndShow, 100);
+    try { if (localStorage.getItem('iar_welcome_seen')) return; } catch(e) {}
+    
+    // Bypass window.onload completely. Heavy iframes block the load event in Incognito.
+    setTimeout(() => {
+        const modal = document.getElementById('welcome-modal');
+        const panel = document.getElementById('welcome-panel');
+        if (modal && panel) {
+            modal.style.display = 'flex';
+            requestAnimationFrame(() => modal.classList.add('visible'));
         }
-    };
-
-    if (document.readyState === 'complete') {
-        setTimeout(waitForPreloaderAndShow, 300);
-    } else {
-        window.addEventListener('load', function() { setTimeout(waitForPreloaderAndShow, 500); });
-    }
-}
-
-function showWelcome() {
-    const modal = document.getElementById('welcome-modal');
-    if (!modal) return;
-    try { showIntroScreen(); } catch(e) {}
-    modal.style.display = 'flex';
-    document.body.classList.add('welcome-active');
-    requestAnimationFrame(function() { modal.classList.add('visible'); });
-}
-
-window.showIntroScreen = function() {
-    const intro = document.getElementById('welcome-screen-intro');
-    const showcase = document.getElementById('welcome-screen-showcase');
-    const tour = document.getElementById('welcome-screen-tour');
-    if (intro) intro.style.display = 'flex';
-    if (showcase) showcase.style.display = 'none';
-    if (tour) tour.style.display = 'none';
-    resetSpotlight();
-};
-
-window.showShowcaseScreen = function() {
-    const intro = document.getElementById('welcome-screen-intro');
-    const showcase = document.getElementById('welcome-screen-showcase');
-    const tour = document.getElementById('welcome-screen-tour');
-    if (intro) intro.style.display = 'none';
-    if (showcase) showcase.style.display = 'flex';
-    if (tour) tour.style.display = 'none';
-    resetSpotlight();
-};
-
-function resetSpotlight() {
-    const spotlight = document.getElementById('welcome-spotlight');
-    const arrow = document.getElementById('welcome-arrow');
-    const panel = document.getElementById('welcome-panel');
-    if (spotlight) {
-        spotlight.style.clipPath = 'none';
-        spotlight.style.backdropFilter = 'blur(4px)';
-        spotlight.style.webkitBackdropFilter = 'blur(4px)';
-        spotlight.style.background = 'rgba(0,0,0,0.5)';
-    }
-    if (arrow) arrow.style.display = 'none';
-    if (panel) {
-        panel.style.position = 'relative';
-        panel.style.left = 'auto';
-        panel.style.top = 'auto';
-        panel.style.transform = 'none';
-        panel.style.maxWidth = '380px';
-    }
+    }, 1500);
 }
 
 window.closeWelcome = function() {
     const modal = document.getElementById('welcome-modal');
     if (!modal) return;
     modal.classList.remove('visible');
-    document.body.classList.remove('welcome-active');
-    setTimeout(function() {
-        modal.style.display = 'none';
-        try { localStorage.setItem('iar_welcome_seen', 'true'); } catch(e) {}
-    }, 300);
-    const spotlight = document.getElementById('welcome-spotlight');
-    const arrow = document.getElementById('welcome-arrow');
-    if (spotlight) spotlight.style.cssText = '';
-    if (arrow) arrow.style.cssText = '';
+    setTimeout(() => { modal.style.display = 'none'; try { localStorage.setItem('iar_welcome_seen', 'true'); } catch(e) {} }, 300);
 };
-
-window.startOnboardingTour = function() {
-    const intro = document.getElementById('welcome-screen-intro');
-    const showcase = document.getElementById('welcome-screen-showcase');
-    const tour = document.getElementById('welcome-screen-tour');
-    if (intro) intro.style.display = 'none';
-    if (showcase) showcase.style.display = 'none';
-
-    // Skip tour on very small screens
-    if (window.innerWidth < 480) {
-        if (tour) {
-            tour.innerHTML = '<h2 class="welcome-title">Tour Paused</h2>' +
-                '<p class="welcome-text">The interactive tour works best on desktop or tablet (480px+ wide). On mobile, you can explore the dashboard freely \u2014 toggle panels using the buttons in the header.</p>' +
-                '<div class="welcome-actions"><button class="welcome-btn primary" onclick="closeWelcome()">Got it</button></div>';
-            tour.style.display = 'flex';
-        }
-        return;
-    }
-
-    if (tour) tour.style.display = 'flex';
-    currentTourStep = 0;
-    renderTourProgress();
-    renderTourStep();
-};
-
-function renderTourProgress() {
-    const container = document.getElementById('tour-progress-dots');
-    if (!container) return;
-    container.innerHTML = '';
-    for (let i = 0; i < TOUR_STEPS.length; i++) {
-        const dot = document.createElement('span');
-        dot.className = 'tour-dot' + (i <= currentTourStep ? ' active' : '');
-        dot.setAttribute('data-step', i + 1);
-        container.appendChild(dot);
-    }
-}
-
-function renderTourStep() {
-    const step = TOUR_STEPS[currentTourStep];
-    if (!step) return;
-
-    const titleEl = document.getElementById('tour-title');
-    const textEl = document.getElementById('tour-text');
-    if (titleEl) titleEl.textContent = step.title;
-    if (textEl) textEl.textContent = step.text;
-
-    document.querySelectorAll('.tour-dot').forEach(function(dot, i) {
-        dot.classList.toggle('active', i <= currentTourStep);
-    });
-
-    const nextBtn = document.getElementById('tour-next-btn');
-    if (nextBtn) nextBtn.textContent = currentTourStep === TOUR_STEPS.length - 1 ? 'Finish' : 'Next';
-
-    positionTourForStep(step);
-}
-
-function positionTourForStep(step) {
-    const target = document.querySelector(step.targetSelector);
-    const spotlight = document.getElementById('welcome-spotlight');
-    const panel = document.getElementById('welcome-panel');
-    const arrow = document.getElementById('welcome-arrow');
-
-    if (!spotlight || !panel) return;
-
-    if (!target) {
-        panel.style.position = 'relative';
-        panel.style.left = 'auto';
-        panel.style.top = 'auto';
-        panel.style.transform = 'none';
-        panel.style.maxWidth = '380px';
-        if (arrow) arrow.style.display = 'none';
-        return;
-    }
-
-    const rect = target.getBoundingClientRect();
-    const pad = 12;
-    const x = rect.left - pad;
-    const y = rect.top - pad;
-    const w = rect.width + pad * 2;
-    const h = rect.height + pad * 2;
-
-    spotlight.style.position = 'fixed';
-    spotlight.style.top = '0';
-    spotlight.style.left = '0';
-    spotlight.style.width = '100vw';
-    spotlight.style.height = '100vh';
-    spotlight.style.background = 'rgba(0,0,0,0.6)';
-    spotlight.style.backdropFilter = 'blur(4px)';
-    spotlight.style.webkitBackdropFilter = 'blur(4px)';
-    spotlight.style.pointerEvents = 'none';
-    spotlight.style.transition = 'clip-path 0.3s ease, background 0.3s ease';
-    spotlight.style.clipPath = 'polygon(0% 0%, 0% 100%, ' + x + 'px 100%, ' + x + 'px ' + y + 'px, ' + (x + w) + 'px ' + y + 'px, ' + (x + w) + 'px ' + (y + h) + 'px, ' + x + 'px ' + (y + h) + 'px, ' + x + 'px 100%, 100% 100%, 100% 0%)';
-
-    const isMobile = window.innerWidth < 600;
-    const panelW = isMobile ? Math.min(window.innerWidth - 40, 360) : 360;
-    const panelH = isMobile ? 200 : 240;
-    const margin = isMobile ? 16 : 24;
-    let panelX, panelY;
-
-    if (isMobile) {
-        panelX = 20;
-        panelY = window.innerHeight - panelH - 20;
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else if (step.tooltipPosition === 'right') {
-        panelX = rect.right + margin;
-        panelY = rect.top + rect.height / 2 - panelH / 2;
-    } else if (step.tooltipPosition === 'left') {
-        panelX = rect.left - panelW - margin;
-        panelY = rect.top + rect.height / 2 - panelH / 2;
-    } else if (step.tooltipPosition === 'top') {
-        panelX = rect.left + rect.width / 2 - panelW / 2;
-        panelY = rect.top - panelH - margin;
-    } else {
-        panelX = rect.left + rect.width / 2 - panelW / 2;
-        panelY = rect.bottom + margin;
-    }
-
-    panelX = Math.max(20, Math.min(panelX, window.innerWidth - panelW - 20));
-    panelY = Math.max(20, Math.min(panelY, window.innerHeight - panelH - 20));
-
-    panel.style.position = 'fixed';
-    panel.style.left = panelX + 'px';
-    panel.style.top = panelY + 'px';
-    panel.style.transform = 'none';
-    panel.style.maxWidth = panelW + 'px';
-
-    if (arrow) {
-        const arrowSize = 60;
-        let arrowX, arrowY, rotation = 0;
-
-        if (step.tooltipPosition === 'right') {
-            arrowX = rect.right + 4;
-            arrowY = rect.top + rect.height / 2 - arrowSize / 2;
-            rotation = 180;
-        } else if (step.tooltipPosition === 'left') {
-            arrowX = rect.left - arrowSize - 4;
-            arrowY = rect.top + rect.height / 2 - arrowSize / 2;
-            rotation = 0;
-        } else if (step.tooltipPosition === 'top') {
-            arrowX = rect.left + rect.width / 2 - arrowSize / 2;
-            arrowY = rect.top - arrowSize - 4;
-            rotation = 90;
-        } else {
-            arrowX = rect.left + rect.width / 2 - arrowSize / 2;
-            arrowY = rect.bottom + 4;
-            rotation = -90;
-        }
-
-        arrow.style.display = 'block';
-        arrow.style.left = arrowX + 'px';
-        arrow.style.top = arrowY + 'px';
-        arrow.style.transform = 'rotate(' + rotation + 'deg)';
-        arrow.style.transition = 'all 0.3s ease';
-    }
-}
-
-window.nextTourStep = function() {
-    if (currentTourStep < TOUR_STEPS.length - 1) {
-        currentTourStep++;
-        renderTourStep();
-    } else {
-        closeWelcome();
-    }
-};
-
-window.addEventListener('resize', function() {
-    const step = TOUR_STEPS[currentTourStep];
-    const tourScreen = document.getElementById('welcome-screen-tour');
-    if (step && tourScreen && tourScreen.style.display === 'flex') {
-        positionTourForStep(step);
-    }
-});
-
 showWelcomeIfFirstVisit();
 
 // =========================================================================
-// CO-PILOT AI WIDGET (Triage: AI answers, human when needed)
+// UNIFIED CO-PILOT CHAT & POLLING ENGINE (MEMORY LEAK FIXED)
 // =========================================================================
-
-const CHAT_PRESETS = [
-    { icon: '🧠', text: 'How does AI extraction work?', topic: 'extract' },
-    { icon: '⚙️', text: "What's the tech stack?", topic: 'stack' },
-    { icon: '🔌', text: 'How do I add a destination?', topic: 'destination' },
-    { icon: '🎨', text: 'Can I customize the UI?', topic: 'custom' },
-    { icon: '📡', text: 'How do I receive real emails?', topic: 'email' },
-    { icon: '🔒', text: 'Is my data secure?', topic: 'secure' }
-];
-
+const LIVE_CHAT_WEBHOOK = 'https://api.auxavia.me/webhook/chat-relay'; 
 const KNOWLEDGE_BASE = {
-    extract: "The AI extraction uses Google Gemini Flash via the n8n LangChain node. It reads unstructured text and outputs a structured JSON schema with lead_name, company, budget, urgency, sentiment, and summary. The schema is enforced by an output parser for consistent fields.",
-    stack: "Built with vanilla JavaScript, HTML, and CSS on the frontend — no frameworks, no build step. The backend is an n8n workflow with Google Gemini for AI extraction. It has 18 destination nodes total, 11 currently enabled (airtable, hubspot, notion, clickup, asana, monday, klaviyo, telegram, discord, gmail, custom) and 7 disabled (sheets, trello, shopify, gcal, whatsapp, stripe, slack). Reachable via Cloudflare tunnel.",
-    destination: "To add a new destination: (1) add a new toggle in the sidebar HTML, (2) add it to the LIVE_PLATFORMS Set in script.js, (3) add a routing branch in the n8n workflow's Switch node, (4) add an HTTP Request node for the platform's API. The pipeline visualization auto-updates from LIVE_PLATFORMS.",
-    custom: "Yes! The UI is fully themeable. Click '🎒 Customize UI' to open the Vault and unlock seasonal themes, hats, and pixel pets. The dark/light toggle is in the header. For deeper changes, edit the CSS variables in style.css (--bg-color, --accent-color, etc.).",
-    email: "For real email routing, set up a Cloudflare email worker that forwards inbound emails to the n8n webhook. The current demo uses a simulated inbound. For production, you'll need a permanent webhook URL — see workflow.json for the path.",
-    secure: "Your data is processed in real-time and not stored anywhere. The Gemini API call is transient, and each platform's API receives only the extracted fields (no raw email content). The webhook URL should be kept private — never commit it to a public repo."
+    extract: "The AI extraction uses Google Gemini Flash via the n8n LangChain node.",
+    stack: "Built with vanilla JavaScript, HTML, and CSS. The backend is an n8n workflow with Gemini. It has 11 live destinations and 7 disabled. Reachable via a custom api.auxavia.me backend.",
+    destination: "Add a toggle in HTML, add it to LIVE_PLATFORMS, add a routing branch in n8n, and an HTTP Request node.",
+    custom: "Yes! Click '🎒 Customize UI' to open the Vault and unlock themes, hats, and pets.",
+    email: "For real email routing, set up a Cloudflare email worker. This demo uses a simulated inbound.",
+    secure: "Data is processed in real-time and not stored. The Gemini API call is transient."
 };
 
-const ESCALATION_KEYWORDS = [
-    'urgent', 'help me', 'broken', 'critical', 'production',
-    'hire', 'project', 'freelance', 'contract', 'pricing',
-    'cost', 'timeline', 'collaboration', 'partnership',
-    'enterprise', 'custom build', 'consulting'
-];
+let chatSessionId;
+try {
+    chatSessionId = localStorage.getItem('auxavia_chat_session') || ('session_' + Math.random().toString(36).substring(2, 9));
+    localStorage.setItem('auxavia_chat_session', chatSessionId);
+} catch(e) { chatSessionId = 'session_' + Math.random().toString(36).substring(2, 9); }
 
-const TOPIC_KEYWORDS = {
-    extract: ['extract', 'ai', 'gemini', 'parse', 'process'],
-    stack: ['stack', 'built', 'technology', 'framework', 'language'],
-    destination: ['destination', 'integrate', 'platform', 'add', 'connect'],
-    custom: ['custom', 'theme', 'color', 'style', 'personalize'],
-    email: ['email', 'webhook', 'inbound', 'receive'],
-    secure: ['secure', 'security', 'privacy', 'data', 'safe']
+let renderedMessageKeys = new Set();
+let chatPollingTimeout = null;
+let chatPollingAbort = null;
+let chatPollingStartTime = 0;
+let chatPollingBackoff = 3000;
+let isWaitingForSupport = false;
+
+window.stopChatPolling = function() {
+    isWaitingForSupport = false;
+    if (chatPollingTimeout) { clearTimeout(chatPollingTimeout); chatPollingTimeout = null; }
+    if (chatPollingAbort) { chatPollingAbort.abort(); chatPollingAbort = null; }
 };
 
-let isSendingChat = false;
-let escalationMode = false;
-let askedQuestions = new Set();
+window.pauseChatPolling = function() {
+    if (chatPollingTimeout) { clearTimeout(chatPollingTimeout); chatPollingTimeout = null; }
+    if (chatPollingAbort) { chatPollingAbort.abort(); chatPollingAbort = null; }
+};
 
-
-// =========================================================================
-// UNIFIED CO-PILOT CHAT ENGINE & CONTROLLER
-// =========================================================================
-
-/**
- * Toggle visibility of chat widget drawer and background overlay.
- */
-window.toggleChat = function() {
-    const chat = document.getElementById('chatContainer');
-    const toggleBtn = document.getElementById('chatToggleBtn');
-    const overlay = document.getElementById('chatOverlay');
-    const sidebarBtn = document.getElementById('openSidebarBtn');
-    
-    if (chat) chat.classList.toggle('open');
-    if (toggleBtn) toggleBtn.classList.toggle('hidden');
-    if (overlay) overlay.classList.toggle('active');
-
-    // Hide sidebar button to prevent UI bleed on mobile
-    if (chat && chat.classList.contains('open')) {
-        if (sidebarBtn) sidebarBtn.style.display = 'none';
-    } else {
-        if (sidebarBtn) sidebarBtn.style.display = 'flex';
+window.resumeChatPolling = function() {
+    if (isWaitingForSupport && !chatPollingTimeout) {
+        window.pollOnce();
     }
 };
 
-/**
- * Append a chat bubble message to the chat history.
- */
-window.addChatMessage = function(text, type, allowHtml = false) {
+window.pollOnce = function() {
+    if (chatPollingTimeout) clearTimeout(chatPollingTimeout);
+    if (chatPollingAbort) chatPollingAbort.abort();
+    
+    // Stop after 5 minutes
+    if (Date.now() - chatPollingStartTime > 300000) {
+        if (isWaitingForSupport) {
+            window.addChatMessage('The developer hasn’t replied yet. Polling paused to save bandwidth.', 'bot');
+        }
+        window.stopChatPolling();
+        return;
+    }
+    
+    if (document.hidden) {
+        chatPollingTimeout = setTimeout(window.pollOnce, chatPollingBackoff);
+        return;
+    }
+    
+    chatPollingAbort = new AbortController();
+    fetch(`${LIVE_CHAT_WEBHOOK}?action=poll&sessionId=${chatSessionId}`, { signal: chatPollingAbort.signal })
+        .then(res => {
+            if (!res.ok) return null;
+            return res.text().then(text => {
+                try { return text ? JSON.parse(text) : { messages: [] }; } 
+                catch(e) { return { messages: [] }; }
+            });
+        })
+        .then(data => {
+            let gotReply = false;
+            if (data && Array.isArray(data.messages)) {
+                data.messages.forEach(msg => {
+                    const key = `${msg.Timestamp}_${msg.Message}`;
+                    if (!renderedMessageKeys.has(key)) {
+                        renderedMessageKeys.add(key);
+                        window.addChatMessage(msg.Message, 'bot');
+                        gotReply = true;
+                    }
+                });
+            }
+            if (gotReply) {
+                window.stopChatPolling();
+            } else {
+                chatPollingBackoff = Math.min(chatPollingBackoff * 1.5, 15000); // Max 15s
+                chatPollingTimeout = setTimeout(window.pollOnce, chatPollingBackoff);
+            }
+        })
+        .catch(e => {
+            if (e.name !== 'AbortError') {
+                chatPollingBackoff = Math.min(chatPollingBackoff * 1.5, 15000);
+                chatPollingTimeout = setTimeout(window.pollOnce, chatPollingBackoff);
+            }
+        });
+};
+
+window.toggleChat = function() {
+    const chat = document.getElementById('chatContainer');
+    if (chat) chat.classList.toggle('open');
+    document.getElementById('chatToggleBtn')?.classList.toggle('hidden');
+    document.getElementById('chatOverlay')?.classList.toggle('active');
+    if (!chat || !chat.classList.contains('open')) {
+        window.pauseChatPolling();
+    } else {
+        window.resumeChatPolling();
+    }
+};
+
+window.resetChat = function() {
+    isEscalated = false;
+    const chatBox = document.getElementById('chat-box');
+    if (chatBox) {
+        chatBox.innerHTML = `
+            <div class="msg bot" id="chat-intro-msg">
+                Hi! I'm the Support Assistant. Most questions are answered instantly by the presets below.
+            </div>
+            
+            <div id="typing-indicator" class="typing-indicator" style="display:none;">
+                <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+            </div>
+        `;
+    }
+    
+    const chatControls = document.getElementById('chat-controls');
+    if (chatControls) chatControls.style.display = 'block';
+
+    const urgentBtn = document.getElementById('urgent-help-btn');
+    if (urgentBtn) {
+        urgentBtn.disabled = false;
+        urgentBtn.innerHTML = '&#128587; Need human help?';
+        urgentBtn.style.opacity = '1';
+        urgentBtn.style.cursor = 'pointer';
+    }
+
+    const chatInputArea = document.getElementById('chat-input-area');
+    if (chatInputArea) chatInputArea.classList.add('hidden');
+    
+    window.stopChatPolling(); renderedMessageKeys.clear();
+};
+
+window.addChatMessage = function(text, type, isHtml = false) {
     const chatBox = document.getElementById('chat-box');
     const typing = document.getElementById('typing-indicator');
     if (!chatBox) return;
-
-    const msg = document.createElement('div');
-    msg.className = 'msg ' + (type === 'user' ? 'user' : 'bot');
-    if (allowHtml) {
-        msg.innerHTML = text;
-    } else {
-        msg.textContent = text;
-    }
-
-    if (typing && typing.parentNode === chatBox) {
-        chatBox.insertBefore(msg, typing);
-    } else {
-        chatBox.appendChild(msg);
-    }
-    chatBox.scrollTop = chatBox.scrollHeight;
+    const msg = document.createElement('div'); msg.className = `msg ${type}`;
+    isHtml ? msg.innerHTML = text : msg.textContent = text;
+    typing ? chatBox.insertBefore(msg, typing) : chatBox.appendChild(msg);
+    setTimeout(() => chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' }), 10);
 };
 
-/**
- * Control typing indicator bubble visibility.
- */
 window.showTyping = function(show) {
     const typing = document.getElementById('typing-indicator');
-    const chatBox = document.getElementById('chat-box');
-    if (!typing) return;
-    if (show) {
-        typing.classList.add('active');
-        typing.style.display = 'inline-flex';
-        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-    } else {
-        typing.classList.remove('active');
-        typing.style.display = 'none';
+    if (typing) {
+        typing.style.display = show ? 'inline-flex' : 'none';
+        if (show) {
+            const chatBox = document.getElementById('chat-box');
+            setTimeout(() => chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' }), 10);
+        }
     }
 };
 
-/**
- * 100% Silent custom message handler.
- * Displays user message and silently relays without fake bot replies.
- */
-window.submitEscalation = function() {
-    if (window.isSendingChat) return;
-    const input = document.getElementById('user-input');
-    const text = input ? input.value.trim() : '';
-    if (!text) return;
+let isEscalated = false;
+window.triggerHumanEscalation = function(btn) {
+    if (isEscalated) return;
+    isEscalated = true;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "Connecting...";
+        btn.style.opacity = "0.7";
+        btn.style.cursor = "not-allowed";
+    }
+    const chatControls = document.getElementById('chat-controls');
+    if (chatControls) chatControls.style.display = 'none';
 
-    window.isSendingChat = true;
-
-    // 1. Display the user's message in the chat history
-    window.addChatMessage(text, 'user');
-    if (input) input.value = '';
-
-    // 2. DO NOT trigger typing indicator or any bot reply.
-    // Message is silently accepted.
+    window.addChatMessage("I need human help.", 'user'); window.showTyping(true);
     setTimeout(() => {
-        window.isSendingChat = false;
-    }, 300);
-};
-
-/**
- * Handle human escalation request.
- * Posts user intent, displays typing indicator, and returns direct developer support card.
- */
-window.triggerHumanEscalation = function() {
-    if (window.isSendingChat) return;
-    window.isSendingChat = true;
-
-    // Natural user phrase
-    window.addChatMessage("I'd like to connect with the developer.", 'user');
-    window.showTyping(true);
-
-    setTimeout(function() {
         window.showTyping(false);
-        const replyHtml = `
-            <p style="margin-top: 0; margin-bottom: 8px;">Routing you to live support. 🤖➡️👤</p>
-            <p style="margin-bottom: 10px; font-size: 0.80rem; color: var(--text-muted);">Click below to connect directly with the lead engineer:</p>
-            <a href="https://t.me/YOUR_TELEGRAM_HANDLE" target="_blank" rel="noopener noreferrer" class="telegram-live-btn">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.12.03-1.97 1.25-5.56 3.67-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.05-.49-.83-.27-1.49-.41-1.44-.87.03-.24.35-.48.96-.74 3.78-1.65 6.3-2.73 7.55-3.25 3.6-1.5 4.35-1.76 4.84-1.77.11 0 .36.03.49.14.11.1.15.23.16.36.01.12-.01.26-.03.38z"/></svg>
-                Open Live Support ↗
-            </a>
-        `;
-        window.addChatMessage(replyHtml, 'bot', true);
-
-        const inputArea = document.getElementById('chat-input-area');
-        if (inputArea) inputArea.classList.remove('hidden');
-
-        window.isSendingChat = false;
+        window.addChatMessage("<strong>Live Support Mode Activated</strong> &#9889;<br>Type your message below. It routes directly to my phone!", 'bot', true);
+        document.getElementById('chat-input-area')?.classList.remove('hidden');
     }, 1000);
 };
 
-/**
- * Handle preset FAQ question clicks.
- */
 window.sendFaq = function(text) {
-    if (window.isSendingChat) return;
-    window.isSendingChat = true;
-
-    // Visual feedback for clicked chip
-    const chips = document.querySelectorAll('.prompt-chip');
-    chips.forEach(chip => {
-        if (chip.textContent.trim() === text.trim()) {
-            chip.style.opacity = '0.5';
-            chip.style.pointerEvents = 'none';
-        }
-    });
-
-    window.addChatMessage(text, 'user');
-    window.showTyping(true);
-
-    setTimeout(function() {
+    window.addChatMessage(text, 'user'); window.showTyping(true);
+    setTimeout(() => {
         window.showTyping(false);
+        const lower = text.toLowerCase();
         let reply = "I can help with that!";
-        if (typeof KNOWLEDGE_BASE !== 'undefined') {
-            const lower = text.toLowerCase();
-            if (lower.includes('extraction') || lower.includes('ai')) {
-                reply = KNOWLEDGE_BASE.extract;
-            } else if (lower.includes('tech stack') || lower.includes('stack')) {
-                reply = KNOWLEDGE_BASE.stack;
-            } else if (lower.includes('destination')) {
-                reply = KNOWLEDGE_BASE.destination;
-            } else if (lower.includes('customize') || lower.includes('ui')) {
-                reply = KNOWLEDGE_BASE.custom;
-            } else if (lower.includes('real email') || lower.includes('receive')) {
-                reply = KNOWLEDGE_BASE.email;
-            } else if (lower.includes('secure') || lower.includes('security')) {
-                reply = KNOWLEDGE_BASE.secure;
-            }
-        }
+        if (lower.includes('ai')) reply = KNOWLEDGE_BASE.extract;
+        else if (lower.includes('stack')) reply = KNOWLEDGE_BASE.stack;
+        else if (lower.includes('destination')) reply = KNOWLEDGE_BASE.destination;
+        else if (lower.includes('ui')) reply = KNOWLEDGE_BASE.custom;
+        else if (lower.includes('email')) reply = KNOWLEDGE_BASE.email;
+        else if (lower.includes('secure')) reply = KNOWLEDGE_BASE.secure;
         window.addChatMessage(reply, 'bot');
-        window.isSendingChat = false;
-    }, 900);
+    }, 800);
 };
 
-/**
- * Backward-compatible alias for preset questions.
- */
-window.askPresetQuestion = function(val) {
-    if (typeof val === 'number' && typeof CHAT_PRESETS !== 'undefined' && CHAT_PRESETS[val]) {
-        window.sendFaq(CHAT_PRESETS[val].text);
-    } else if (typeof val === 'string') {
-        window.sendFaq(val);
+window.submitEscalation = function(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById("user-input");
+    const text = input ? input.value.trim() : "";
+    if (!text) return;
+    
+    window.addChatMessage(text, 'user');
+    if (input) input.value = "";
+    
+    fetch(LIVE_CHAT_WEBHOOK, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'user_message', sessionId: chatSessionId, message: text })
+    }).then(res => {
+        if (!res.ok) throw new Error('Network error');
+        if (!isWaitingForSupport) {
+            window.addChatMessage('Message queued. I’ll show the developer’s reply here when it arrives.', 'bot');
+        }
+    }).catch(err => {
+        window.addChatMessage('The support relay is unavailable. Please try again later.', 'bot');
+        console.error(err);
+    });
+
+    if (!isWaitingForSupport) {
+        isWaitingForSupport = true;
+        chatPollingStartTime = Date.now();
+        chatPollingBackoff = 3000;
+        window.pollOnce();
     }
 };
 
-/**
- * Reset conversation history to initial clean state.
- */
-window.resetChat = function() {
-    const chatBox = document.getElementById('chat-box');
-    if (!chatBox) return;
-    chatBox.innerHTML = `
-        <div class="msg bot" id="chat-intro-msg">
-            Hi! I'm the AI Co-Pilot. Most questions are answered instantly by the presets below. If you need human help, click the button at the bottom.
-        </div>
-        <div class="typing-indicator" id="typing-indicator">
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
-        </div>
-    `;
-    const chips = document.querySelectorAll('.prompt-chip');
-    chips.forEach(chip => {
-        chip.style.opacity = '1';
-        chip.style.pointerEvents = 'auto';
-    });
-};
-
-/**
- * Unified Chat Widget DOM Initializer.
- * Enforces strict DOM hierarchy, dual arrow navigation, and cleans up event listeners.
- */
 window.initChatWidget = function() {
-    const chatContainer = document.getElementById('chatContainer');
-    const chatBox = document.getElementById('chat-box');
-    const inputArea = document.getElementById('chat-input-area');
-
-    if (!chatContainer || !chatBox || !inputArea) return;
-
-    // 1. Ensure typing indicator exists inside chat-box
-    let typing = document.getElementById('typing-indicator');
-    if (!typing) {
-        typing = document.createElement('div');
-        typing.className = 'typing-indicator';
-        typing.id = 'typing-indicator';
-        typing.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
-        chatBox.appendChild(typing);
-    }
-
-    // 2. Clean up any existing quick-prompts wrappers to avoid duplicates
-    document.querySelectorAll('.quick-prompts-wrapper').forEach(w => {
-        const bar = w.querySelector('.quick-prompts-bar');
-        if (bar && w.parentNode) {
-            w.parentNode.replaceChild(bar, w);
-        }
-    });
-
-    // 3. Clean up the quick prompts bar
-    const quickPrompts = document.querySelector('.quick-prompts-bar');
-    if (quickPrompts) {
-        // Remove old robotic human help chip
-        quickPrompts.querySelectorAll('.prompt-chip').forEach(chip => {
-            if (chip.textContent.includes('human') || chip.classList.contains('urgent-chip')) {
-                chip.remove();
-            }
-        });
-
-        // Re-wrap quick prompts with smooth dual arrows
-        const wrapper = document.createElement('div');
-        wrapper.className = 'quick-prompts-wrapper';
-        if (quickPrompts.parentNode) {
-            quickPrompts.parentNode.insertBefore(wrapper, quickPrompts);
-        }
-
-        const leftBtn = document.createElement('button');
-        leftBtn.className = 'prompt-scroll-btn';
-        leftBtn.setAttribute('type', 'button');
-        leftBtn.setAttribute('aria-label', 'Scroll prompts left');
-        leftBtn.innerHTML = '&#10094;';
-        leftBtn.onclick = () => quickPrompts.scrollBy({ left: -140, behavior: 'smooth' });
-
-        const rightBtn = document.createElement('button');
-        rightBtn.className = 'prompt-scroll-btn';
-        rightBtn.setAttribute('type', 'button');
-        rightBtn.setAttribute('aria-label', 'Scroll prompts right');
-        rightBtn.innerHTML = '&#10095;';
-        rightBtn.onclick = () => quickPrompts.scrollBy({ left: 140, behavior: 'smooth' });
-
-        wrapper.appendChild(leftBtn);
-        wrapper.appendChild(quickPrompts);
-        wrapper.appendChild(rightBtn);
-    }
-
-    // 4. Ensure Human Support Footer link exists
-    let footerContainer = document.querySelector('.human-footer-container');
-    if (!footerContainer) {
-        footerContainer = document.createElement('div');
-        footerContainer.className = 'human-footer-container';
-        footerContainer.innerHTML = '<a href="#" class="human-footer-link">Talk to the developer ↗</a>';
-        const link = footerContainer.querySelector('.human-footer-link');
-        if (link) {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                window.triggerHumanEscalation();
-            });
-        }
-    } else {
-        const link = footerContainer.querySelector('.human-footer-link');
-        if (link) {
-            link.textContent = 'Talk to the developer ↗';
-        }
-    }
-
-    // 5. Enforce strict DOM stacking order:
-    // [chat-header] -> [chat-box] -> [quick-prompts-wrapper] -> [chat-input-area] -> [human-footer-container]
-    const header = chatContainer.querySelector('.chat-header');
-    if (header) chatContainer.appendChild(header);
-    chatContainer.appendChild(chatBox);
-    const wrapperEl = document.querySelector('.quick-prompts-wrapper');
-    if (wrapperEl) chatContainer.appendChild(wrapperEl);
-    chatContainer.appendChild(inputArea);
-    if (footerContainer) chatContainer.appendChild(footerContainer);
-
-    // 6. PERMANENT BUG FIX: Replace input and send button with fresh clones to purge stacked listeners
     const rawInput = document.getElementById('user-input');
     const rawSendBtn = document.getElementById('send-btn');
 
@@ -1930,13 +1687,9 @@ window.initChatWidget = function() {
         const freshInput = rawInput.cloneNode(true);
         rawInput.parentNode.replaceChild(freshInput, rawInput);
         freshInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                if (window.innerWidth > 900) {
-                    if (!e.shiftKey) {
-                        e.preventDefault();
-                        window.submitEscalation();
-                    }
-                }
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                window.submitEscalation();
             }
         });
     }
@@ -1951,323 +1704,9 @@ window.initChatWidget = function() {
     }
 };
 
-// Initialize on DOM ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', window.initChatWidget);
 } else {
     window.initChatWidget();
 }
-
-// --- OVERRIDE: IN-APP LIVE SUPPORT RELAY (NO REDIRECTS) ---
-
-// 1. When they click the subtle "Talk to the developer" link
-window.triggerHumanEscalation = function() {
-    if (window.isSendingChat) return;
-    window.isSendingChat = true;
-
-    addChatMessage("I'd like to connect with the developer.", 'user');
-    showTyping(true);
-
-    setTimeout(function() {
-        showTyping(false);
-        const chatBox = document.getElementById('chat-box');
-        const typing = document.getElementById('typing-indicator');
-        
-        const msg = document.createElement('div');
-        msg.className = 'msg bot escalation-message';
-        // Clean message setting the expectation that the chat happens RIGHT HERE
-        msg.innerHTML = `
-            <p style="margin: 0 0 8px 0;"><strong>Live Support Mode Activated</strong> 🟢</p>
-            <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Please type your message below. It will be sent directly to my phone, and my reply will appear right here in this chat.</p>
-        `;
-        
-        if (chatBox && typing) {
-            chatBox.insertBefore(msg, typing);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        const inputArea = document.getElementById('chat-input-area');
-        if (inputArea) inputArea.classList.remove('hidden');
-
-        window.isSendingChat = false;
-    }, 1000);
-};
-
-// 2. When they actually send a custom message
-window.submitEscalation = function(e) {
-    if (e) e.preventDefault();
-    const input = document.getElementById("user-input");
-    const text = input ? input.value.trim() : "";
-    if (!text) return;
-
-    // Display user message instantly
-    addChatMessage(text, 'user');
-    if (input) input.value = "";
-    showTyping(true);
-    
-    // Simulate relaying the message to the backend (NO Telegram Links!)
-    setTimeout(() => {
-        showTyping(false);
-        addChatMessage("✓ Message delivered. Waiting for developer reply...", 'bot');
-        window.isSendingChat = false;
-        
-        // (In the future, this is where we will trigger the polling function 
-        // to check n8n for your reply from Telegram)
-    }, 1000);
-};
-
-// 3. Ensure the Send button and Enter key use the new logic
-window.addEventListener('load', () => {
-    const oldBtn = document.getElementById('send-btn');
-    if (oldBtn) {
-        const freshBtn = document.createElement('button');
-        freshBtn.className = oldBtn.className;
-        freshBtn.id = oldBtn.id;
-        freshBtn.textContent = 'Send';
-        freshBtn.onclick = window.submitEscalation;
-        oldBtn.parentNode.replaceChild(freshBtn, oldBtn);
-    }
-
-    const userInput = document.getElementById('user-input');
-    if (userInput) {
-        userInput.onkeydown = function(e) {
-            if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 900) {
-                e.preventDefault();
-                window.submitEscalation();
-            }
-        };
-    }
-});
-
-
-// --- MASTER OVERRIDE: SILENT LIVE CHAT HANDLER ---
-
-// 1. Rewrite the submit function to be 100% silent (no bot replies, no typing indicators)
-window.submitEscalation = function(e) {
-    if (e) e.preventDefault();
-    const input = document.getElementById("user-input");
-    const text = input ? input.value.trim() : "";
-    if (!text) return;
-
-    // Display user message instantly
-    addChatMessage(text, 'user');
-    
-    // Clear input
-    if (input) input.value = "";
-    
-    // STAY SILENT: No fake bot messages. Awaiting true Telegram relay.
-    window.isSendingChat = false; 
-};
-
-// 2. Re-bind the Send button and Enter key, wiping out hidden ghost listeners
-(function enforceSilentSend() {
-    window.addEventListener('DOMContentLoaded', () => {
-        const sendBtn = document.getElementById('send-btn');
-        const userInput = document.getElementById('user-input');
-
-        if (sendBtn && userInput) {
-            // Clone to destroy old background click events
-            const newSendBtn = sendBtn.cloneNode(true);
-            sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
-            newSendBtn.addEventListener('click', window.submitEscalation);
-
-            // Overwrite keydown directly to destroy old background enter events
-            userInput.onkeydown = function(e) {
-                if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 900) {
-                    e.preventDefault();
-                    window.submitEscalation();
-                }
-            };
-        }
-    });
-})();
-
-
-
-// --- OVERRIDE: PROCEDURAL PAYLOAD GENERATOR (ZERO TOKEN COST) ---
-(function injectRandomGenerator() {
-    window.addEventListener('DOMContentLoaded', () => {
-        // 1. Locate the container holding the old preset buttons
-        const inputView = document.getElementById('view-simulator');
-        if (!inputView) return;
-        
-        const buttonContainer = inputView.querySelector('div'); // The flex div holding the presets
-        if (!buttonContainer) return;
-
-        // 2. Replace the old buttons with a single dynamic Randomize button
-        buttonContainer.innerHTML = `
-            <button type="button" class="preset-btn" id="btn-random-payload" style="background: rgba(139, 92, 246, 0.1); border-color: var(--accent-color); color: var(--text-main); width: 100%; justify-content: center; display: flex; gap: 8px;">
-                <span style="font-size: 1.1rem;">🎲</span> Generate Random Inbound Lead
-            </button>
-        `;
-
-        // 3. The Procedural Data Vault
-        const dataVault = {
-            firstNames: ['Michael', 'Sarah', 'James', 'Elena', 'David', 'Chloe', 'Marcus', 'Priya', 'Alex', 'Jordan'],
-            lastNames: ['Scott', 'Connor', 'Bond', 'Fisher', 'Chen', 'Miller', 'Wright', 'Patel', 'Rodriguez', 'Kim'],
-            companies: ['Dunder Mifflin', 'CyberDyne', 'Stark Industries', 'Acme Corp', 'GlobalTech', 'Apex Solutions', 'Nexus Dynamics', 'Zephyr Co'],
-            budgets: ['$5,000', '$12,500', '$50k', 'around 100k', 'a tight budget of $2k', 'unlimited budget', '$25,000/mo', '10 grand'],
-            urgencyPhrases: ['by next Friday', 'within 2 weeks', 'by the end of the month', 'in about 10 days', 'before the quarter ends', 'sometime next week'],
-            
-            // Templates use placeholders like {name}, {company}, etc.
-            templates: [
-                {
-                    subject: "Enterprise Pricing Inquiry - {company}",
-                    body: "Hi team,\n\nI was browsing your site and we need an enterprise license for {company}. My name is {name} and I'm leading the procurement.\n\nWe have {budget} allocated for this quarter. Can we jump on a call {urgency}? \n\nThanks!"
-                },
-                {
-                    subject: "URGENT: System Down for {company}!!!",
-                    body: "THIS IS UNACCEPTABLE! \n\nOur entire production environment at {company} has been down for two hours. I am {name}, the CTO. We are losing money every minute.\n\nI need an engineer on this {urgency}. We pay {budget} a year for this service, I expect better!"
-                },
-                {
-                    subject: "Partnership Opportunity with {company}",
-                    body: "Hey there! {name} here from {company}.\n\nLove what you guys are building. We're looking to integrate your API and have a warchest of {budget} to get this done. \n\nLet's connect {urgency} to discuss synergies.\n\nCheers."
-                },
-                {
-                    subject: "Quick question regarding {company} account",
-                    body: "Hello,\n\nJust a quick note from {name} over at {company}. We are looking to upgrade our current tier. We have about {budget} to spend.\n\nPlease get back to me {urgency} with some options.\n\nBest,\n{name}"
-                },
-                {
-                    subject: "Angry customer: {name}",
-                    body: "To whom it may concern,\n\nI have emailed you three times already. I am {name} from {company}. If this isn't resolved {urgency}, I am taking my {budget} elsewhere. \n\nFix my billing issue now."
-                }
-            ]
-        };
-
-        // 4. Randomization Logic
-        const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
-        
-        document.getElementById('btn-random-payload').addEventListener('click', () => {
-            // Pick random elements
-            const fn = getRandom(dataVault.firstNames);
-            const ln = getRandom(dataVault.lastNames);
-            const fullName = `${fn} ${ln}`;
-            const company = getRandom(dataVault.companies);
-            const budget = getRandom(dataVault.budgets);
-            const urgency = getRandom(dataVault.urgencyPhrases);
-            const domain = company.toLowerCase().replace(/\s+/g, '') + '.com';
-            const email = `${fn.toLowerCase()}.${ln.toLowerCase()}@${domain}`;
-
-            // Pick a random template
-            const template = getRandom(dataVault.templates);
-
-            // Replace placeholders
-            const processText = (text) => {
-                return text
-                    .replace(/{name}/g, fullName)
-                    .replace(/{company}/g, company)
-                    .replace(/{budget}/g, budget)
-                    .replace(/{urgency}/g, urgency);
-            };
-
-            // Inject into DOM
-            const senderEl = document.getElementById('raw-sender');
-            const subjectEl = document.getElementById('raw-subject');
-            const dataEl = document.getElementById('raw-data');
-
-            if (senderEl) senderEl.value = email;
-            if (subjectEl) subjectEl.value = processText(template.subject);
-            
-            // Add a cool typing effect for the main payload body
-            if (dataEl) {
-                const finalBody = processText(template.body);
-                dataEl.value = "";
-                let i = 0;
-                
-                // Disable button briefly to prevent spamming while typing
-                const btn = document.getElementById('btn-random-payload');
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-
-                const typeWriter = setInterval(() => {
-                    dataEl.value += finalBody.charAt(i);
-                    i++;
-                    if (i >= finalBody.length) {
-                        clearInterval(typeWriter);
-                        btn.disabled = false;
-                        btn.style.opacity = '1';
-                    }
-                }, 5); // 5ms per character creates a fast, satisfying "AI generating" feel
-            }
-        });
-    });
-})();
-
-
-
-// --- MASTER OVERRIDE: 100% SILENT POLLING ENGINE ---
-// Using the PRODUCTION URL so the 4-second polling doesn't break n8n testing
-const LIVE_CHAT_WEBHOOK = 'https://earlier-link-killing-exception.trycloudflare.com/webhook/chat-relay'; 
-// --- FIX: PERSISTENT SESSION ID ---
-let chatSessionId = localStorage.getItem('auxavia_chat_session');
-if (!chatSessionId || !chatSessionId.startsWith('session_')) {
-    chatSessionId = 'session_' + Math.random().toString(36).substring(2, 9);
-    localStorage.setItem('auxavia_chat_session', chatSessionId);
-}
-let renderedMessageKeys = new Set();
-let chatPollingInterval = null;
-
-window.submitEscalation = function(e) {
-    if (e) e.preventDefault();
-    const input = document.getElementById("user-input");
-    const text = input ? input.value.trim() : "";
-    if (!text) return;
-
-    // 1. Display user message instantly
-    addChatMessage(text, 'user');
-    if (input) input.value = "";
-    
-    // 2. Fire payload to n8n backend
-    fetch(LIVE_CHAT_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            action: 'user_message',
-            sessionId: chatSessionId,
-            message: text
-        })
-    }).catch(err => console.log('Chat POST sync issue', err));
-
-    // 3. STAY 100% SILENT. No typing indicators, no bot messages.
-    window.isSendingChat = false;
-    startChatPolling();
-};
-
-function startChatPolling() {
-    if (chatPollingInterval) return; 
-    
-    chatPollingInterval = setInterval(() => {
-        fetch(`${LIVE_CHAT_WEBHOOK}?action=poll&sessionId=${chatSessionId}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data && Array.isArray(data.messages) && data.messages.length > 0) {
-                data.messages.forEach(msg => {
-                    // Create a unique key based on timestamp and message text
-                    const msgKey = `${msg.Timestamp}_${msg.Message}`;
-                    if (!renderedMessageKeys.has(msgKey)) {
-                        renderedMessageKeys.add(msgKey);
-                        addChatMessage(msg.Message, 'bot');
-                    }
-                });
-            }
-        }).catch(err => {}); 
-    }, 10000); 
-}
-
-// Ensure clean event listeners
-window.addEventListener('load', () => {
-    const sendBtn = document.getElementById('send-btn');
-    const userInput = document.getElementById('user-input');
-    if (sendBtn && userInput) {
-        const newBtn = sendBtn.cloneNode(true);
-        sendBtn.parentNode.replaceChild(newBtn, sendBtn);
-        newBtn.addEventListener('click', window.submitEscalation);
-        userInput.onkeydown = function(e) {
-            if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 900) {
-                e.preventDefault();
-                window.submitEscalation();
-            }
-        };
-    }
-});
 

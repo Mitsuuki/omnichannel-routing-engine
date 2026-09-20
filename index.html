@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Intelligent Agency Router | Workspace</title>
-    <link rel="stylesheet" href="style.css?v=66.0">
+    <link rel="stylesheet" href="style.css?v=67.0">
 </head>
 <body>
     <!-- SYSTEM PRELOADER -->
@@ -22,23 +22,24 @@
 
     <!-- INLINE PRELOADER LOGIC (Runs independently of script.js) -->
     <script>
-        // window.onload naturally waits for your heavy script.js to finish executing
-        window.addEventListener('load', function() {
+        function removePreloader() {
             const preloader = document.getElementById('system-preloader');
-            
-            // Give the browser 300ms to "breathe" and paint the UI after the heavy JS load
-            setTimeout(() => {
-                if(preloader) {
-                    preloader.classList.add('fade-out');
-                    
-                    // Physically remove the preloader from the DOM after it fades out 
-                    // This frees up memory so your app runs faster!
-                    setTimeout(() => {
-                        preloader.remove();
-                    }, 600);
-                }
-            }, 300);
+            if(preloader) {
+                preloader.classList.add('fade-out');
+                
+                // Physically remove the preloader from the DOM after it fades out 
+                setTimeout(() => { preloader.remove(); }, 600);
+            }
+        }
+
+        // Normal path: wait for everything to load smoothly
+        window.addEventListener('load', function() {
+            setTimeout(removePreloader, 300);
         });
+
+        // FAILSAFE PATH: If third-party iframes (ClickUp, Monday) hang or are 
+        // blocked by Incognito mode, force the preloader to clear after 3.5 seconds.
+        setTimeout(removePreloader, 3500);
     </script>
 
     <!-- GLOBAL LAYERS FOR THEMES & COMPANIONS (Pointer-events: none so they NEVER block clicks) -->
@@ -204,8 +205,9 @@
                         </div>
                         <div id="view-simulator" class="input-view active">
                             <div style="display:flex; gap: 8px; margin-bottom: 12px; margin-top: 10px;">
-                                <button type="button" class="preset-btn" onclick="loadTemplate('lead')">📄 Messy Lead</button>
-                                <button type="button" class="preset-btn" onclick="loadTemplate('complaint')">🚨 Angry Ticket</button>
+                                <button type="button" class="preset-btn" onclick="generateRandomPayload()" style="background: rgba(139, 92, 246, 0.1); border-color: var(--accent-color); color: var(--text-main); width: 100%; justify-content: center; display: flex; gap: 8px;">
+                                    <span style="font-size: 1.1rem;">🎲</span> Generate Random Inbound Lead
+                                </button>
                             </div>
                             <form id="router-form" class="email-composer">
                                 <div class="composer-field"><span class="field-label">From:</span> <input type="text" id="raw-sender" placeholder="lead@example.com" value="michael.scott@dunder.com"></div>
@@ -215,6 +217,7 @@
                                 </div>
                             </form>
                         </div>
+                    </div>
                 </div>
 
                 <!-- DRAG TO RESIZE (Vertical Top) -->
@@ -402,8 +405,8 @@
         <div class="chat-header">
             <div class="chat-header-left">
                 <div class="dot"></div>
-                <span>Technical Co-Pilot</span>
-                <span class="chat-mode-badge" id="chat-mode-badge">AI Mode</span>
+                <span>Support Assistant</span>
+                <span class="chat-mode-badge" id="chat-mode-badge">Live Support Relay</span>
             </div>
             <div>
                 <button class="chat-reset-btn" onclick="resetChat()" title="Reset conversation">↻</button>
@@ -412,135 +415,62 @@
         </div>
         <div class="chat-box" id="chat-box">
             <div class="msg bot" id="chat-intro-msg">
-                Hi! I'm the AI Co-Pilot. Most questions are answered instantly by the presets below. If you need human help, click the button at the bottom.
+                Hi! I'm the Support Assistant. Most questions are answered instantly by the presets below.
             </div>
-            <div class="quick-prompts-bar">
-            <!-- Moved the human help button here -->
-            <button class="prompt-chip urgent-chip" onclick="triggerHumanEscalation()">🙋 Need human help?</button>
             
-            <button class="prompt-chip" onclick="sendFaq('What\'s the tech stack?')">What's the tech stack?</button>
-            <button class="prompt-chip" onclick="sendFaq('How do I add a destination?')">How do I add a destination?</button>
-            <button class="prompt-chip" onclick="sendFaq('Can I customize the UI?')">Can I customize the UI?</button>
-            <button class="prompt-chip" onclick="sendFaq('How do I receive real emails?')">How do I receive real emails?</button>
-            <button class="prompt-chip" onclick="sendFaq('Is my data secure?')">Is my data secure?</button>
+            <div id="typing-indicator" class="typing-indicator" style="display:none;">
+                <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+            </div>
+
+                    </div>
+        
+        <div id="chat-controls" style="background: transparent; padding: 0 15px 15px 15px;">
+            <div class="quick-prompts-wrapper" style="position: relative; margin-bottom: 10px; border-radius: 12px; background: transparent; padding: 0;">
+                <button class="scroll-btn" onclick="document.querySelector('#chat-controls .quick-prompts-bar').scrollBy({left: -150, behavior: 'smooth'})" style="position: absolute; left: -5px; top: 50%; transform: translateY(-50%);">&lt;</button>
+                <div class="quick-prompts-bar" style="display: flex; gap: 8px; overflow-x: auto; flex: 1; padding: 5px 25px; scroll-behavior: smooth;">
+                    <button class="prompt-chip" onclick="sendFaq('What\'s the tech stack?')">What's the tech stack?</button>
+                    <button class="prompt-chip" onclick="sendFaq('How do I add a destination?')">How do I add a destination?</button>
+                    <button class="prompt-chip" onclick="sendFaq('Can I customize the UI?')">Can I customize the UI?</button>
+                    <button class="prompt-chip" onclick="sendFaq('How do I receive real emails?')">How do I receive real emails?</button>
+                    <button class="prompt-chip" onclick="sendFaq('Is my data secure?')">Is my data secure?</button>
+                </div>
+                <button class="scroll-btn" onclick="document.querySelector('#chat-controls .quick-prompts-bar').scrollBy({left: 150, behavior: 'smooth'})" style="position: absolute; right: -5px; top: 50%; transform: translateY(-50%);">&gt;</button>
+            </div>
+            <div style="text-align: center;">
+                <button class="prompt-chip urgent-chip" id="urgent-help-btn" onclick="triggerHumanEscalation(this)" style="width: 100%; justify-content: center; display: flex;">&#128587; Need human help?</button>
+            </div>
         </div>
 
         <div class="chat-input-area hidden" id="chat-input-area">
-            <textarea id="user-input" rows="2" placeholder="Describe your issue briefly..."></textarea>
-            <button class="send-btn" id="send-btn" onclick="submitEscalation()">Send</button>
+            <textarea id="user-input" placeholder="Type your message..." rows="1"></textarea>
+            <button class="send-btn" id="send-btn">Send</button>
         </div>
-    </div>
+</div> <!-- CRITICAL: This closes the chat container so it doesn't swallow the modal! -->
 
-    
-    <!-- WELCOME / ONBOARDING MODAL -->
+<!-- WELCOME / ONBOARDING MODAL -->
     <div id="welcome-modal" class="welcome-modal" style="display:none;">
         <div class="welcome-spotlight" id="welcome-spotlight"></div>
-        <svg class="welcome-arrow" id="welcome-arrow" width="60" height="60" viewBox="0 0 60 60">
-            <path d="M5 30 Q 30 5, 55 30" stroke="var(--accent-color)" stroke-width="3" fill="none" stroke-linecap="round"/>
-            <polygon points="50,25 60,30 50,35" fill="var(--accent-color)"/>
-        </svg>
+
         <div class="welcome-panel" id="welcome-panel">
-            <div class="welcome-content" id="welcome-screen-intro">
-                <h2 class="welcome-title">Welcome to Intelligent Agency Router</h2>
-                <p class="welcome-text">
-                    An AI-powered omnichannel routing engine that extracts data from messy messages and syncs it across 11+ platforms in seconds.
-                </p>
-                <p class="welcome-text" style="font-size: 0.85rem; color: var(--text-muted);">
-                    Built with vanilla JavaScript, n8n, and Gemini AI.
-                </p>
-                <div class="welcome-actions">
-                    <button class="welcome-btn primary" onclick="showShowcaseScreen()">Show me what it does</button>
-                    <button class="welcome-btn ghost" style="font-size: 0.75rem; opacity: 0.7;" onclick="closeWelcome()">Skip Everything</button>
-                </div>
-            </div>
-            <div class="welcome-content" id="welcome-screen-showcase" style="display:none;">
-                <h2 class="welcome-title">What This Portfolio Does</h2>
-                <div class="showcase-grid">
-                    <div class="showcase-card">
-                        <div class="showcase-icon">🧠</div>
-                        <h3 class="showcase-card-title">AI Extraction</h3>
-                        <p class="showcase-card-text">Paste messy emails. Gemini AI extracts lead name, company, budget, urgency, and sentiment into clean JSON.</p>
-                    </div>
-                    <div class="showcase-card">
-                        <div class="showcase-icon">🔀</div>
-                        <h3 class="showcase-card-title">Smart Routing</h3>
-                        <p class="showcase-card-text">One click fans the data out to 11+ platforms in parallel: Airtable, HubSpot, ClickUp, Gmail, Discord, and more.</p>
+            <div class="welcome-content" style="width: 100%; max-width: 500px;">
+                <h2 class="welcome-title">Omnichannel Routing Engine</h2>
+                <div style="text-align: center; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 15px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);">
+                    <h4 style="margin: 0 0 12px 0; color: var(--accent-color); font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">&#128214; Quick Start README</h4>
+                    <div style="font-size: 0.95rem; line-height: 1.5; color: var(--text-main);">
+                        <p style="margin: 0 0 10px 0;"><strong>Goal:</strong> Extract data from messy emails and route to 11 live platforms simultaneously.</p>
+                        <p style="margin: 0 0 10px 0;"><strong>Tech Stack:</strong> Vanilla JS, CSS (No Frameworks) + n8n + Gemini AI.</p>
+                        <p style="margin: 0 0 10px 0;"><strong>How to use:</strong> Click the "Messy Lead" preset to load a sample email, then click "Execute Routing Pipeline".</p>
+                        <p style="margin: 0;"><strong>Bonus:</strong> Try the "Customize UI" vault to unlock themes and VFX.</p>
                     </div>
                 </div>
-                <div class="welcome-actions">
-                    <button class="welcome-btn ghost" onclick="showIntroScreen()">Back</button>
-                    <button class="welcome-btn primary" onclick="startOnboardingTour()">Take the Tour</button>
-                </div>
-            </div>
-            <div class="welcome-content" id="welcome-screen-tour" style="display:none;">
-                <div class="tour-progress" id="tour-progress-dots"></div>
-                <h2 class="welcome-title" id="tour-title">Step 1: Input</h2>
-                <p class="welcome-text" id="tour-text">Paste a messy email or use the 'Messy Lead' preset to load sample data.</p>
-                <div class="welcome-actions">
-                    <button class="welcome-btn ghost" onclick="closeWelcome()">Skip</button>
-                    <button class="welcome-btn ghost" id="tour-prev-btn" onclick="prevTourStep()" style="display:none;">Back</button>
-                    <button class="welcome-btn primary" id="tour-next-btn" onclick="nextTourStep()">Next</button>
-                </div>
+                <button class="welcome-btn primary" onclick="closeWelcome()" style="width: 100%; font-size: 1.1rem; padding: 12px;">Drop me in</button>
             </div>
         </div>
     </div>
 
-    <!-- ============================================================
-         LAYOUT v65 — UN-NESTING CORRECTION
-         Earlier the live HTML got into a state where q2 was nested
-         inside q1 and bottom-row was nested inside top-row. This
-         script reverses that damage on every page load:
-           1. Detects where each piece currently lives.
-           2. Walks up the parent chain until it finds the canonical
-              parent (main-container, top-row, bottom-row).
-           3. Re-inserts each node at the correct position.
-         Result (after this runs):
-           #main-container > #top-row > [q1, resizer-v-top, q2]
-           #main-container > #resizer-h-main
-           #main-container > #bottom-row > [q3, resizer-v-bottom, q4]
-         ============================================================ -->
-    <script>
-    (function unNestLayout() {
-        const findById = (id) => document.getElementById(id);
-        const main = findById('main-container');
-        const topRow = findById('top-row');
-        const bottomRow = findById('bottom-row');
-        const q1 = findById('q1');
-        const q2 = findById('q2');
-        const q3 = findById('q3');
-        const q4 = findById('q4');
-        const rH = findById('resizer-h-main');
-        const rTop = findById('resizer-v-top');
-        const rBot = findById('resizer-v-bottom');
-        if (!main || !topRow || !bottomRow || !q1 || !q2 || !q3 || !q4) return;
 
-        // Step 1: move bottom-row out of wherever it is, into main-container.
-        // It should become main's LAST child (so the resizer can sit between top-row and bottom-row).
-        main.appendChild(bottomRow);
 
-        // Step 2: move resizer-h-main into main-container, just BEFORE bottom-row.
-        if (rH) main.insertBefore(rH, bottomRow);
-
-        // Step 3: move q2 out of q1 (or wherever) and into top-row, as a sibling of q1.
-        topRow.appendChild(q2);
-
-        // Step 4: re-place the vertical resizers in their correct slots.
-        if (rTop) topRow.insertBefore(rTop, q2);
-        if (rBot) bottomRow.insertBefore(rBot, q4);
-
-        // Sanity log so the user can confirm in DevTools console.
-        const after = {
-            mainChildren: Array.from(main.children).map(c => c.id || c.className),
-            topRowChildren: Array.from(topRow.children).map(c => c.id || c.className),
-            bottomRowChildren: Array.from(bottomRow.children).map(c => c.id || c.className)
-        };
-        console.log('=== LAYOUT v65 UN-NESTED ===');
-        console.log(JSON.stringify(after, null, 2));
-        console.log('=== END ===');
-    })();
-    </script>
-
-    <script src="script.js?v=60.0"></script>
+    <script src="script.js?v=61.0"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@widgetbot/html-embed"></script>
 
