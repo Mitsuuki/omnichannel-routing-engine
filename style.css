@@ -307,8 +307,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 @keyframes gentle-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); } 50% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); } }
 
 /* DYNAMIC VAULT UI */
-/* DEDUCTED: Hardcoded dark background. ADDED: var(--surface-color) */
-.gacha-vault { position: fixed; top: 0; left: 0; right: 0; bottom: 0; margin: auto; transform: scale(0.95); width: 450px; max-width: 90%; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; z-index: var(--z-vault); box-shadow: 0 25px 50px rgba(0,0,0,0.8); opacity: 0; visibility: hidden; transition: all 0.3s; display: flex; flex-direction: column; backdrop-filter: blur(10px); pointer-events: auto;}
+.gacha-vault { position: fixed; top: 0; left: 0; right: 0; bottom: 0; margin: auto; transform: scale(0.95); width: 450px; max-width: 90%; max-height: 85vh; height: max-content; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; z-index: var(--z-vault); box-shadow: 0 25px 50px rgba(0,0,0,0.8); opacity: 0; visibility: hidden; transition: all 0.3s; display: flex; flex-direction: column; backdrop-filter: blur(10px); pointer-events: auto;}
 .gacha-vault.open { opacity: 1; visibility: visible; transform: scale(1); }
 .vault-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
 /* DEDUCTED: Hardcoded white text. ADDED: var(--text-main) */
