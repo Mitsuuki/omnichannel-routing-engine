@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jan Forro | Remote Support &amp; Automation Portfolio</title>
+  <meta name="description" content="Meet Jan Forro, a Philippine-based BS Real Estate Management student interested in remote support, web development, and workflow automation. Explore projects and a printable résumé.">
+  <meta name="theme-color" content="#143f37">
+  <meta property="og:title" content="Jan Forro | Remote Support &amp; Automation">
+  <meta property="og:description" content="Project demos, skills, and a résumé for entry-level remote work.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://auxavia.me/portfolio/">
+  <link rel="canonical" href="https://auxavia.me/portfolio/">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="portfolio.css">
+  <script src="inquiry.js" defer></script>
+</head>
+<body id="top">
+<a class="skip" href="#main">Skip to content</a>
+<header class="mast wrap">
+  <a class="brand" href="#top" aria-label="Auxavia home"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>auxavia<span class="brand-period">.</span></a>
+  <nav aria-label="Main navigation"><a href="#about">About</a><a href="#skills">Skills</a><a href="#projects">Projects</a><a href="#resume">Résumé</a><a class="contact-nav" href="#contact">Contact</a></nav>
+</header>
+<main id="main">
+  <section class="hero wrap" aria-labelledby="name">
+    <div class="intro">
+      <p class="kicker"><span class="rule"></span> Remote support &amp; automation</p>
+      <h1 id="name">Jan <em>Forro</em><span class="period">.</span></h1>
+      <p class="lede">I organize incoming leads and build small tools that make follow-up easier.</p>
+      <p class="bio-short">I’m a BS Real Estate Management student in the Philippines looking for entry-level remote work in operations, web development, and real estate support.</p>
+      <div class="actions"><a class="button primary" href="#projects">Explore my work</a><a class="textlink" href="#resume">Read my résumé</a></div>
+    </div>
+    <section class="workflow" aria-labelledby="desk-heading">
+      <div class="desk-head"><span class="desk-icon" aria-hidden="true">✉</span><h2 id="desk-heading">Inquiry desk</h2><span class="desk-sample">Work sample</span></div>
+      <div class="desk-surface">
+        <div class="desk-paper">
+          <div class="letter-head"><span class="desk-label">Incoming inquiry</span><label class="case-picker" hidden><span class="sr-only">Choose sample inquiry</span><select id="inquiry-case"><option value="viewing">Viewing request</option><option value="rental">Rental availability</option></select></label></div>
+          <h3 id="case-subject">Viewing at 1200 Ocean Ave</h3>
+          <blockquote id="case-message">“Hi Jan, could I see the Ocean Ave rental on Saturday afternoon? Let me know what time works. Thanks, Mika.”</blockquote>
+          <details class="case-details" id="case-record">
+            <summary><span class="open-record">Prepare follow-up record</span><span class="close-record">Hide follow-up record</span></summary>
+            <dl class="case-fields">
+              <div><dt>Contact</dt><dd>Mika</dd></div>
+              <div><dt>Property</dt><dd>1200 Ocean Ave</dd></div>
+              <div><dt>Request</dt><dd>Viewing request</dd></div>
+              <div><dt>Preference</dt><dd>Saturday afternoon</dd></div>
+              <div><dt>Next action</dt><dd>Confirm a viewing slot with the listing contact.</dd></div>
+            </dl>
+            <a class="record-download" id="case-download" href="sample-follow-up.csv" download="sample-follow-up.csv">Download this row as CSV</a>
+          </details>
+        </div>
+      </div>
+      <p class="desk-foot">Fictional inquiry · Runs in your browser</p>
+    </section>
+  </section>
+  <section class="projects section wrap" id="projects" aria-labelledby="work-title">
+    <div class="section-head"><p class="kicker"><span class="rule"></span> Projects</p><h2 id="work-title">Selected work<span class="period">.</span></h2></div>
+    <div class="work-grid">
+      <article class="project feature">
+        <div class="project-visual route-visual"><img src="images/routing-workspace.webp" width="840" height="290" loading="lazy" alt="Routing dashboard showing a sample lead moving through extraction and routing to Airtable and ClickUp."></div>
+        <div class="project-top"><span class="badge"><span class="status-dot"></span>Interactive demo</span><span class="mono">Workflow automation</span></div>
+        <h3>Omnichannel <br>Routing Engine</h3>
+        <p>I built a dashboard that turns incoming messages into a routing workflow. Generate a sample email, choose two destinations, and inspect the receipt for each one.</p>
+        <ul class="tags" aria-label="Technologies"><li>JavaScript</li><li>n8n</li><li>Webhooks</li></ul>
+        <a href="https://auxavia.me/" class="button primary"><span class="play" aria-hidden="true"></span>Open live routing dashboard</a>
+        <p class="project-note">Generate a fictional lead to explore the dashboard. Executing the pipeline can send it to configured services.</p>
+      </article>
+      <article class="project secondary">
+        <div class="project-visual property-visual"><img src="images/akari-property.webp" width="840" height="290" loading="lazy" alt=""></div>
+        <div class="project-top"><span class="badge"><span class="status-dot"></span>Interactive demo</span><span class="mono">Real estate support</span></div>
+        <h3>Akari Real Estate</h3>
+        <p>I built a listing page that carries the property address into the inquiry. Open a listing, choose “Inquire Now,” and see the editable message a renter starts with.</p>
+        <ul class="tags" aria-label="Technologies"><li>HTML</li><li>CSS</li><li>JavaScript</li></ul>
+        <a class="button outline" href="https://mitsuuki.github.io/akari-real-estate/">Explore the property listings</a>
+        <details><summary>Try a sample inquiry</summary><p>Find 1200 Ocean Ave under Featured Properties and choose “Inquire Now.” The chat opens with a question about that rental. You can inspect and edit the draft before sending.</p></details>
+      </article>
+    </div>
+  </section>
+  <div class="profile-band"><div class="profile-grid wrap">
+    <section id="about" aria-labelledby="about-title"><p class="kicker"><span class="rule"></span> About me</p><h2 id="about-title">From inquiry<br><em>to follow-up.</em></h2>
+      <p>A viewing request can arrive with a street name and a preferred day, but no time. I like the work of turning that message into a clear next step for the person handling the listing.</p>
+      <p>I bring those questions to my web and automation projects. I like turning a process into steps someone else can follow, then checking what happens when a step fails.</p>
+    </section>
+    <section id="skills" aria-labelledby="skills-title"><p class="kicker"><span class="rule"></span> Skills</p><h2 id="skills-title">What I can help with</h2>
+      <dl class="skills"><dt>Virtual assistance &amp; data entry</dt><dd>Organizing inquiry details, checking for missing fields, and preparing follow-up lists.</dd><dt>Web development</dt><dd>Building and updating responsive pages with HTML, CSS, and JavaScript.</dd><dt>Workflow automation</dt><dd>Connecting APIs with webhooks and n8n, reading responses, and testing with sample data.</dd><dt>Real estate support</dt><dd>Structuring property details and keeping listing information easy to look up.</dd></dl>
+    </section>
+  </div></div>
+  <section class="resume wrap section" id="resume" aria-labelledby="resume-title">
+    <div><p class="kicker"><span class="rule"></span> Résumé</p><h2 id="resume-title">At a glance<span class="period">.</span></h2><a class="button outline" href="jan-forro-resume.pdf" download>Download résumé <span class="filetype">PDF</span></a></div>
+    <dl class="facts"><div><dt>Education</dt><dd>BS Real Estate Management, in progress<br><span>New Era University · Philippines</span></dd></div><div><dt>Seeking</dt><dd>Entry-level remote roles in virtual assistance, data entry, web development, workflow automation, and real estate support.</dd></div><div><dt>Tools</dt><dd>HTML, CSS, JavaScript, APIs, n8n, and AI-assisted development.</dd></div><div><dt>Project work</dt><dd>Omnichannel Routing Engine · interactive demo<br><a href="https://mitsuuki.github.io/akari-real-estate/">Akari Real Estate</a> · property inquiry demo</dd></div></dl>
+  </section>
+  <section class="contact" id="contact" aria-labelledby="contact-title"><div class="wrap contact-inner"><div><p class="kicker"><span class="rule"></span> Contact</p><h2 id="contact-title">Get in touch<span>.</span></h2><p>Have a role in mind? I’d like to hear about the work.</p></div><div class="reach"><a class="print-site" href="https://auxavia.me/portfolio/">auxavia.me/portfolio/</a><a class="email" href="mailto:jan.forro@auxavia.me">jan.forro@auxavia.me</a><a class="profile-link" href="https://www.onlinejobs.ph/jobseekers/info/4689921">View my OnlineJobs.ph profile</a></div></div></section>
+</main>
+<footer class="foot wrap"><span>Jan Forro · Philippines <span class="foot-divider">/</span> UTC+8</span><a href="#top">Back to top</a></footer>
+</body>
+</html>
